@@ -1,5 +1,6 @@
 <!DOCTYPE html>
-<!-- HB-56 P-5 · KAMPING · KAM LIFESTYLE module · camping trip planner + voting
+<!-- HB-56 P-6 · KAMPING · KAM LIFESTYLE module · camping trip planner + voting
+     P-6 change (Boss feedback): availability calendar limited to August 2026 only.
      P-5 changes (Boss feedback): in voting, tap any camp to open a detail sheet
        (full photos + info) so you remember what you're voting for, and pick from
        there; plus a "Compare" view to see two camps side by side.
@@ -259,7 +260,7 @@
   <div class="scr-body">
     <p class="eyebrow">Step 1 / 3 · Availability</p>
     <h1>Which days are you free?</h1>
-    <p class="sub">Tap every day across June–August 2026 you could camp. We'll find the dates that work for the most people.</p>
+    <p class="sub">Tap every day in August 2026 you could camp. We'll find the dates that work for the most people.</p>
     <div class="availcount" id="availCount">Tap the days you're free</div>
     <div id="availGrid"></div>
   </div>
@@ -397,7 +398,7 @@ const DESTINATIONS = [
 ];
 
 /* CALENDAR — Boss asked for clickable Jun/Jul/Aug calendars (specific days). 2026. */
-const CAL_MONTHS = [ {y:2026,m:5,label:"June"}, {y:2026,m:6,label:"July"}, {y:2026,m:7,label:"August"} ];
+const CAL_MONTHS = [ {y:2026,m:7,label:"August"} ];
 const DOW = ["Mon","Tue","Wed","Thu","Fri","Sat","Sun"];
 function isoDate(y,m,d){ return `${y}-${String(m+1).padStart(2,"0")}-${String(d).padStart(2,"0")}`; }
 function prettyDate(iso){ const [y,m,d]=iso.split("-").map(Number); const dt=new Date(y,m-1,d);
