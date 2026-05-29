@@ -1,151 +1,198 @@
 <!DOCTYPE html>
-<!-- HB-56 P-2 · KAMPING · KAM LIFESTYLE module · camping trip planner + voting
-     Nature/campfire reskin · self-contained SVG scenery · keyless jsonblob backend
-     SECURITY: no API keys committed; shared state reachable only via unguessable
+<!-- HB-56 P-3 · KAMPING · KAM LIFESTYLE module · camping trip planner + voting
+     P-3 changes (Boss feedback):
+       1. KAM-CANON aesthetic: forest-ranger field-terminal — phosphor moss-green
+          HUD, scanlines, vignette, glow, pulsing status dot, mono data rows
+          (matches the dashboard's terminal craft, re-skinned to nature colours).
+       2. REAL PHOTOS: each camp has a verified Wikimedia photo (curl-checked 200)
+          layered over the generated SVG scene, so it's rich online AND never blank
+          offline (SVG is the always-present base; photo fades in, hides on error).
+       3. LIVE MAP: each camp + the winner has an on-demand Google map embed (keyless).
+       4. NAV FIX: fixed app-shell — each screen fills the viewport and owns its own
+          scroll; switching always starts at the top (no more "scroll down to find it").
+       5. AVAILABILITY = months: tap June / July / August (multi-select).
+       6. SYNC FIX: connectivity is re-tested every cycle (no permanent "Offline"
+          latch); boot probes the network; friendlier status copy.
+     SECURITY: no API keys committed; shared state reachable only via the unguessable
      share URL; static site is fully isolated (links to nothing internal).
-     Built by Build Jr 2026-05-29 -->
+     Built by Build Jr · 2026-05-29 -->
 <html lang="en">
 <head>
 <meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-<meta name="theme-color" content="#0c1410" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=1" />
+<meta name="theme-color" content="#04100a" />
 <meta name="referrer" content="no-referrer" />
 <title>⛺ KAMPING — Summer 2026</title>
 <link rel="preconnect" href="https://fonts.googleapis.com" />
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@500;600;700&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600;700&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/swiper@11/swiper-bundle.min.css" />
 <style>
   :root{
-    --bg:#0c1410; --bg2:#0a1f17; --bg3:#070f0b;
-    --panel:#13241c; --panel2:#0f1d16; --line:#27392f;
-    --ember:#ff8a3d; --ember-2:#ff6f2f; --ember-glow:rgba(255,138,61,.30);
-    --moss:#6fcf8f; --moss-dim:#3f7d57; --moss-glow:rgba(111,207,143,.20);
-    --lake:#54b9ab; --gold:#ffcf5c; --text:#f3efe4; --muted:#9bae9f;
-    --radius:18px; --tap:46px;
+    --bg:#04100a; --bg2:#071a10; --bg3:#020a06;
+    --panel:#0a1f14; --panel2:#06160e; --line:#163a25; --line2:#1f5234;
+    --green:#3ee07f; --green-dim:#2a9a58; --green-glow:rgba(62,224,127,.22);
+    --ember:#ff9e42; --ember-2:#ff7a2f; --ember-glow:rgba(255,158,66,.28);
+    --gold:#ffcf5c; --red:#ff5a52; --lake:#54c8c0;
+    --text:#e2f3e6; --muted:#7fa98c;
+    --radius:16px; --tap:46px;
     --mono:'IBM Plex Mono',ui-monospace,'SF Mono',Menlo,monospace;
     --sans:'Inter',system-ui,-apple-system,'Segoe UI',Roboto,sans-serif;
   }
   *{box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
-  html,body{margin:0;padding:0;}
+  html,body{margin:0;padding:0;height:100%;overflow:hidden;background:var(--bg3);}
   body{
     color:var(--text); font-family:var(--sans); font-size:16px; line-height:1.45;
-    min-height:100dvh; overflow-x:hidden;
     background:
-      radial-gradient(130% 90% at 50% -10%, #1b3a27 0%, var(--bg2) 38%, var(--bg) 68%, var(--bg3) 100%) fixed;
+      radial-gradient(120% 80% at 50% -8%, #11331f 0%, var(--bg2) 40%, var(--bg) 72%, var(--bg3) 100%);
   }
+  /* CANON: scanlines + vignette overlays (field-terminal CRT) */
+  body::before{content:"";position:fixed;inset:0;pointer-events:none;z-index:2;
+    background:repeating-linear-gradient(0deg,rgba(0,0,0,.16) 0 1px,transparent 1px 3px);
+    mix-blend-mode:multiply;opacity:.5;}
+  body::after{content:"";position:fixed;inset:0;pointer-events:none;z-index:2;
+    background:radial-gradient(ellipse at center,transparent 56%,rgba(0,0,0,.55) 100%);}
   .mono{font-family:var(--mono);}
-  .screen{display:none; min-height:100dvh; max-width:480px; margin:0 auto;
-    padding:22px 18px calc(28px + env(safe-area-inset-bottom)); animation:fade .35s ease;}
-  .screen.active{display:block;}
-  .center{display:flex;flex-direction:column;justify-content:center;align-items:center;text-align:center;min-height:90dvh;}
-  @keyframes fade{from{opacity:0;transform:translateY(10px);}to{opacity:1;transform:none;}}
+  /* APP SHELL — each screen fills the viewport and owns its own scroll */
+  .screen{display:none;position:fixed;inset:0;z-index:1;
+    flex-direction:column;max-width:520px;margin:0 auto;}
+  .screen.active{display:flex;}
+  .scr-body{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;
+    padding:18px 16px calc(14px + env(safe-area-inset-bottom));animation:fade .3s ease;}
+  .scr-foot{flex:0 0 auto;padding:12px 16px calc(14px + env(safe-area-inset-bottom));
+    background:linear-gradient(to top,var(--bg) 55%,transparent);
+    border-top:1px solid var(--line);}
+  .center{justify-content:center;align-items:center;text-align:center;}
+  @keyframes fade{from{opacity:0;transform:translateY(8px);}to{opacity:1;transform:none;}}
   /* logo */
-  .logo{font-family:var(--mono);font-weight:700;font-size:34px;letter-spacing:1px;user-select:none;cursor:pointer;text-shadow:0 0 18px var(--ember-glow);}
-  .logo .tent{color:var(--ember);}
-  .logo.sm{font-size:19px;text-shadow:none;}
-  .tagline{color:var(--moss);font-size:15px;margin-top:12px;font-weight:500;}
-  h1{font-family:var(--mono);font-size:25px;font-weight:700;margin:0 0 4px;letter-spacing:.3px;}
-  h2{font-family:var(--mono);font-size:19px;font-weight:700;margin:0 0 14px;}
-  p.sub{color:var(--muted);margin:0 0 20px;font-size:15px;}
+  .logo{font-family:var(--mono);font-weight:700;font-size:34px;letter-spacing:1px;user-select:none;cursor:pointer;
+    color:var(--green);text-shadow:0 0 14px var(--green-glow);}
+  .logo .tent{color:var(--ember);text-shadow:0 0 14px var(--ember-glow);}
+  .logo.sm{font-size:17px;text-shadow:none;}
+  .tagline{color:var(--muted);font-size:14px;margin-top:14px;font-family:var(--mono);letter-spacing:.3px;}
+  h1{font-family:var(--mono);font-size:23px;font-weight:700;margin:0 0 4px;letter-spacing:.3px;color:var(--text);}
+  h2{font-family:var(--mono);font-size:18px;font-weight:700;margin:0 0 12px;color:var(--text);}
+  .eyebrow{font-family:var(--mono);font-size:11px;letter-spacing:2px;text-transform:uppercase;color:var(--green-dim);margin:0 0 6px;}
+  p.sub{color:var(--muted);margin:0 0 16px;font-size:14px;}
   /* buttons */
   .btn{display:flex;align-items:center;justify-content:center;gap:8px;width:100%;min-height:54px;
-    border:none;border-radius:var(--radius);cursor:pointer;margin-top:18px;font-family:var(--sans);
-    background:linear-gradient(135deg,var(--ember),var(--ember-2));color:#2a1206;font-weight:800;font-size:17px;
+    border:none;border-radius:var(--radius);cursor:pointer;font-family:var(--mono);font-weight:700;font-size:16px;letter-spacing:.5px;
+    background:linear-gradient(135deg,var(--ember),var(--ember-2));color:#2a1206;
     box-shadow:0 6px 22px var(--ember-glow);transition:transform .12s,opacity .2s,box-shadow .2s;}
-  .btn:active{transform:scale(.97);}
-  .btn[disabled]{opacity:.38;pointer-events:none;box-shadow:none;filter:grayscale(.4);}
-  .btn.ghost{background:transparent;border:1.5px solid var(--moss-dim);color:var(--moss);box-shadow:none;font-weight:700;}
-  .btn.moss{background:linear-gradient(135deg,var(--moss),var(--moss-dim));color:#06210f;box-shadow:0 6px 22px var(--moss-glow);}
-  input[type=text]{width:100%;min-height:54px;border-radius:var(--radius);border:1.5px solid var(--line);
-    background:var(--panel);color:var(--text);font-size:17px;padding:0 16px;outline:none;font-family:var(--sans);}
-  input[type=text]:focus{border-color:var(--ember);box-shadow:0 0 0 3px var(--ember-glow);}
+  .btn:active{transform:scale(.98);}
+  .btn[disabled]{opacity:.35;pointer-events:none;box-shadow:none;filter:grayscale(.5);}
+  .btn.ghost{background:transparent;border:1.5px solid var(--line2);color:var(--green);box-shadow:none;margin-top:10px;}
+  .btn.moss{background:linear-gradient(135deg,var(--green),var(--green-dim));color:#04140a;box-shadow:0 6px 22px var(--green-glow);}
+  .btn.sm{min-height:44px;font-size:14px;}
+  input[type=text]{width:100%;min-height:54px;border-radius:var(--radius);border:1.5px solid var(--line2);
+    background:var(--panel);color:var(--text);font-size:17px;padding:0 16px;outline:none;font-family:var(--mono);}
+  input[type=text]:focus{border-color:var(--green);box-shadow:0 0 0 3px var(--green-glow);}
   /* topbar */
-  .topbar{display:flex;align-items:center;justify-content:space-between;margin-bottom:18px;gap:8px;}
+  .topbar{flex:0 0 auto;display:flex;align-items:center;justify-content:space-between;gap:8px;
+    padding:14px 16px 10px;border-bottom:1px solid var(--line);background:rgba(4,16,10,.7);backdrop-filter:blur(6px);}
   .pills{display:flex;gap:6px;align-items:center;}
-  .group-pill{font-family:var(--mono);font-size:11px;color:var(--muted);background:var(--panel);padding:7px 10px;border-radius:20px;border:1px solid var(--line);white-space:nowrap;}
-  .group-pill b{color:var(--moss);}
-  .icon-btn{width:38px;height:38px;border-radius:50%;background:var(--panel);border:1px solid var(--line);color:var(--ember);font-size:16px;cursor:pointer;display:flex;align-items:center;justify-content:center;}
-  /* availability grid */
-  .grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
-  .weekend{min-height:var(--tap);border:1.5px solid var(--line);background:var(--panel);border-radius:14px;
-    padding:13px;text-align:center;cursor:pointer;font-weight:600;font-size:14px;transition:.15s;color:var(--text);}
-  .weekend.on{background:linear-gradient(135deg,var(--moss),var(--moss-dim));color:#06210f;border-color:var(--moss);box-shadow:0 4px 14px var(--moss-glow);}
+  .group-pill{font-family:var(--mono);font-size:11px;color:var(--muted);background:var(--panel);padding:6px 10px;border-radius:8px;border:1px solid var(--line);white-space:nowrap;}
+  .group-pill b{color:var(--green);}
+  .status{display:flex;align-items:center;gap:6px;font-family:var(--mono);font-size:10px;color:var(--muted);letter-spacing:.5px;}
+  .dot{width:8px;height:8px;border-radius:50%;background:var(--green);box-shadow:0 0 8px var(--green);animation:pulse 2s infinite;}
+  .dot.off{background:var(--ember);box-shadow:0 0 8px var(--ember);animation:pulse 1.4s infinite;}
+  @keyframes pulse{0%,100%{opacity:1;}50%{opacity:.35;}}
+  .icon-btn{width:36px;height:36px;border-radius:9px;background:var(--panel);border:1px solid var(--line2);color:var(--ember);font-size:15px;cursor:pointer;display:flex;align-items:center;justify-content:center;}
+  /* availability months */
+  .months{display:flex;flex-direction:column;gap:12px;margin-top:6px;}
+  .month{display:flex;align-items:center;gap:14px;min-height:74px;border:1.5px solid var(--line2);background:var(--panel);border-radius:var(--radius);
+    padding:14px 16px;cursor:pointer;transition:.15s;position:relative;overflow:hidden;}
+  .month .memoji{font-size:30px;line-height:1;}
+  .month .mname{font-family:var(--mono);font-size:19px;font-weight:700;}
+  .month .mhint{font-size:12px;color:var(--muted);margin-top:2px;}
+  .month .mtick{margin-left:auto;width:30px;height:30px;border-radius:50%;border:2px solid var(--line2);display:flex;align-items:center;justify-content:center;color:transparent;font-weight:900;font-size:16px;transition:.15s;}
+  .month.on{border-color:var(--green);background:linear-gradient(135deg,rgba(62,224,127,.14),var(--panel));box-shadow:0 4px 18px var(--green-glow);}
+  .month.on .mtick{background:var(--green);border-color:var(--green);color:#04140a;}
   /* destination cards */
-  .swiper{width:100%;padding-bottom:6px;}
-  .dcard{background:var(--panel);border-radius:20px;overflow:hidden;border:1px solid var(--line);box-shadow:0 10px 30px rgba(0,0,0,.35);}
-  .hero{width:100%;height:200px;display:block;overflow:hidden;position:relative;background:var(--bg2);}
-  .hero svg{width:100%;height:100%;display:block;}
-  .hero .htag{position:absolute;left:12px;bottom:10px;font-family:var(--mono);font-size:12px;color:var(--text);background:rgba(7,15,11,.6);padding:4px 9px;border-radius:12px;backdrop-filter:blur(4px);}
-  .dcard .body{padding:16px;}
-  .dcard .dname{font-family:var(--mono);font-size:21px;font-weight:700;margin:0;}
-  .dcard .cname{color:var(--moss);font-size:13px;font-weight:600;margin:3px 0 8px;}
+  .swiper{width:100%;padding-bottom:4px;}
+  .dcard{background:var(--panel);border-radius:18px;overflow:hidden;border:1px solid var(--line2);box-shadow:0 12px 30px rgba(0,0,0,.45);}
+  .hero{position:relative;width:100%;height:198px;overflow:hidden;background:var(--bg2);}
+  .hero .scene,.hero .scene svg{position:absolute;inset:0;width:100%;height:100%;display:block;}
+  .hero .photo{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;opacity:0;transition:opacity .5s;}
+  .hero .photo.in{opacity:1;}
+  .hero .grad{position:absolute;inset:0;background:linear-gradient(to top,rgba(4,16,10,.92),transparent 42%);}
+  .hero .htag{position:absolute;left:12px;bottom:10px;font-family:var(--mono);font-size:11px;color:var(--text);background:rgba(4,16,10,.66);padding:4px 9px;border-radius:8px;backdrop-filter:blur(4px);border:1px solid var(--line);}
+  .hero .rtag{position:absolute;right:12px;top:12px;font-family:var(--mono);font-size:11px;color:var(--gold);background:rgba(4,16,10,.66);padding:4px 9px;border-radius:8px;border:1px solid var(--line);}
+  .dcard .body{padding:15px;}
+  .dcard .dname{font-family:var(--mono);font-size:20px;font-weight:700;margin:0;}
+  .dcard .cname{color:var(--green);font-family:var(--mono);font-size:12px;font-weight:500;margin:4px 0 6px;}
   .dcard .vibe{color:var(--muted);font-size:14px;margin:0 0 12px;}
-  .stars{color:var(--gold);font-size:15px;letter-spacing:1px;margin-bottom:8px;}
-  .highlight{font-size:12px;color:var(--ember);font-weight:600;margin-bottom:12px;}
+  .highlight{font-size:12px;color:var(--ember);font-weight:600;margin-bottom:12px;font-family:var(--mono);}
   .costrow{display:flex;gap:8px;margin-bottom:12px;}
-  .cost{flex:1;background:var(--panel2);border-radius:12px;padding:10px 6px;text-align:center;border:1px solid var(--line);}
-  .cost .v{font-family:var(--mono);font-size:18px;font-weight:700;color:var(--ember);}
-  .cost .l{font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin-top:2px;}
+  .cost{flex:1;background:var(--panel2);border-radius:10px;padding:9px 5px;text-align:center;border:1px solid var(--line);}
+  .cost .v{font-family:var(--mono);font-size:17px;font-weight:700;color:var(--ember);}
+  .cost .l{font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin-top:2px;}
+  .specrow{display:flex;justify-content:space-between;font-family:var(--mono);font-size:11px;color:var(--muted);border-top:1px dashed var(--line2);border-bottom:1px dashed var(--line2);padding:8px 2px;margin-bottom:10px;}
+  .specrow b{color:var(--text);}
   .chips{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:10px;}
-  .chip{font-size:12px;background:var(--panel2);color:var(--text);padding:5px 10px;border-radius:14px;border:1px solid var(--line);}
-  .chip.act{border-color:var(--moss-dim);color:var(--moss);}
-  .linkrow{display:flex;gap:8px;margin-top:4px;}
-  .linkrow a{flex:1;text-decoration:none;text-align:center;min-height:var(--tap);display:flex;align-items:center;justify-content:center;border-radius:12px;background:var(--panel2);color:var(--text);font-size:13px;font-weight:600;border:1px solid var(--line);}
-  .counter{font-family:var(--mono);text-align:center;color:var(--muted);font-size:13px;margin:14px 0 4px;}
-  .swipe-nav{display:flex;justify-content:space-between;align-items:center;margin-top:8px;}
-  .navbtn{background:var(--panel);border:1px solid var(--line);color:var(--ember);width:48px;height:48px;border-radius:50%;font-size:22px;cursor:pointer;}
+  .chip{font-size:12px;background:var(--panel2);color:var(--text);padding:5px 10px;border-radius:8px;border:1px solid var(--line);}
+  .chip.act{border-color:var(--green-dim);color:var(--green);}
+  .linkrow{display:flex;gap:8px;margin-top:8px;}
+  .linkrow a,.linkrow button{flex:1;text-decoration:none;text-align:center;min-height:var(--tap);display:flex;align-items:center;justify-content:center;gap:5px;
+    border-radius:10px;background:var(--panel2);color:var(--text);font-size:13px;font-weight:600;font-family:var(--mono);border:1px solid var(--line2);cursor:pointer;}
+  .mapwrap{margin-top:10px;border-radius:10px;overflow:hidden;border:1px solid var(--line2);}
+  .mapwrap iframe{width:100%;height:180px;border:0;display:block;background:var(--panel2);}
+  .counter{font-family:var(--mono);text-align:center;color:var(--muted);font-size:12px;margin:0 0 10px;}
+  .swipe-nav{display:flex;justify-content:space-between;align-items:center;margin-top:10px;}
+  .navbtn{background:var(--panel);border:1px solid var(--line2);color:var(--ember);width:46px;height:46px;border-radius:11px;font-size:22px;cursor:pointer;}
   /* vote grids */
   .vgrid{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
-  .vcard{position:relative;border-radius:14px;overflow:hidden;border:2px solid var(--line);cursor:pointer;background:var(--panel);transition:.15s;}
-  .vcard.sel{border-color:var(--moss);box-shadow:0 4px 16px var(--moss-glow);}
+  .vcard{position:relative;border-radius:12px;overflow:hidden;border:2px solid var(--line);cursor:pointer;background:var(--panel);transition:.15s;}
+  .vcard.sel{border-color:var(--green);box-shadow:0 4px 16px var(--green-glow);}
   .vcard.sel .check{display:flex;}
-  .vcard .vthumb{width:100%;height:88px;overflow:hidden;}
-  .vcard .vthumb svg{width:100%;height:100%;display:block;}
-  .vcard .vn{font-size:13px;font-weight:700;padding:8px;font-family:var(--mono);}
-  .vcard .check{display:none;position:absolute;top:6px;right:6px;width:26px;height:26px;border-radius:50%;background:var(--moss);color:#06210f;align-items:center;justify-content:center;font-weight:900;font-size:15px;}
+  .vthumb{position:relative;width:100%;height:92px;overflow:hidden;}
+  .vthumb .scene,.vthumb .scene svg{position:absolute;inset:0;width:100%;height:100%;}
+  .vthumb .photo{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;opacity:0;transition:opacity .4s;}
+  .vthumb .photo.in{opacity:1;}
+  .vcard .vn{font-size:12px;font-weight:700;padding:8px;font-family:var(--mono);}
+  .vcard .check{display:none;position:absolute;top:6px;right:6px;width:25px;height:25px;border-radius:50%;background:var(--green);color:#04140a;align-items:center;justify-content:center;font-weight:900;font-size:14px;}
   .shake{animation:shake .4s;}
   @keyframes shake{0%,100%{transform:translateX(0);}20%,60%{transform:translateX(-7px);}40%,80%{transform:translateX(7px);}}
   /* leaderboard */
-  .lb-row{margin-bottom:13px;}
+  .lb-row{margin-bottom:12px;}
   .lb-top{display:flex;justify-content:space-between;font-size:14px;font-weight:600;margin-bottom:5px;}
   .lb-top .n{color:var(--muted);font-family:var(--mono);}
-  .bar{height:12px;background:var(--panel);border-radius:8px;overflow:hidden;border:1px solid var(--line);}
-  .bar > span{display:block;height:100%;background:linear-gradient(90deg,var(--moss-dim),var(--moss));width:0;transition:width .6s ease;}
+  .bar{height:11px;background:var(--panel);border-radius:7px;overflow:hidden;border:1px solid var(--line);}
+  .bar > span{display:block;height:100%;background:linear-gradient(90deg,var(--green-dim),var(--green));width:0;transition:width .6s ease;}
   .lb-row.lead .bar > span{background:linear-gradient(90deg,var(--ember-2),var(--ember));}
-  .voted-pill{font-family:var(--mono);text-align:center;background:var(--panel);border-radius:14px;padding:13px;margin-bottom:18px;font-weight:700;border:1px solid var(--line);}
-  .lock{color:var(--muted);font-size:13px;text-align:center;margin-top:16px;}
+  .voted-pill{font-family:var(--mono);text-align:center;background:var(--panel);border-radius:10px;padding:12px;margin-bottom:16px;font-weight:700;border:1px solid var(--line2);}
+  .lock{color:var(--muted);font-size:13px;text-align:center;margin-top:14px;font-family:var(--mono);}
   /* winner */
-  .winner-hero{position:relative;border-radius:20px;overflow:hidden;height:270px;margin-bottom:16px;border:1px solid var(--line);}
-  .winner-hero .scene{position:absolute;inset:0;}
-  .winner-hero .scene svg{width:100%;height:100%;}
-  .winner-hero .ov{position:absolute;inset:0;background:linear-gradient(to top,rgba(7,15,11,.96),rgba(7,15,11,.15) 65%);display:flex;align-items:flex-end;padding:18px;}
-  .winner-hero .wn{font-family:var(--mono);font-size:27px;font-weight:700;}
-  .avail-box{background:var(--panel);border-radius:16px;padding:16px;margin-bottom:8px;border:1px solid var(--line);}
-  .avail-box .lab{color:var(--muted);font-size:12px;text-transform:uppercase;letter-spacing:.5px;}
-  .avail-box .dates{font-family:var(--mono);font-size:16px;font-weight:700;color:var(--moss);margin-top:4px;}
+  .winner-hero{position:relative;border-radius:18px;overflow:hidden;height:250px;margin-bottom:14px;border:1px solid var(--line2);}
+  .winner-hero .scene,.winner-hero .scene svg{position:absolute;inset:0;width:100%;height:100%;}
+  .winner-hero .photo{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;opacity:0;transition:opacity .5s;}
+  .winner-hero .photo.in{opacity:1;}
+  .winner-hero .ov{position:absolute;inset:0;background:linear-gradient(to top,rgba(4,16,10,.95),rgba(4,16,10,.1) 60%);display:flex;align-items:flex-end;padding:16px;}
+  .winner-hero .wn{font-family:var(--mono);font-size:25px;font-weight:700;}
+  .avail-box{background:var(--panel);border-radius:14px;padding:15px;margin-bottom:8px;border:1px solid var(--line2);}
+  .avail-box .lab{color:var(--muted);font-size:11px;text-transform:uppercase;letter-spacing:.5px;font-family:var(--mono);}
+  .avail-box .dates{font-family:var(--mono);font-size:16px;font-weight:700;color:var(--green);margin-top:4px;}
   /* share box */
-  .share-box{background:var(--panel2);border:1px dashed var(--moss-dim);border-radius:14px;padding:14px;margin:6px 0 2px;}
-  .share-box .lab{font-size:12px;color:var(--muted);margin-bottom:8px;}
-  .share-url{font-family:var(--mono);font-size:12px;color:var(--moss);word-break:break-all;background:var(--bg3);padding:8px 10px;border-radius:10px;border:1px solid var(--line);}
+  .share-box{background:var(--panel2);border:1px dashed var(--green-dim);border-radius:12px;padding:13px;margin:10px 0 2px;}
+  .share-box .lab{font-size:11px;color:var(--muted);margin-bottom:8px;font-family:var(--mono);text-transform:uppercase;letter-spacing:.5px;}
+  .share-url{font-family:var(--mono);font-size:12px;color:var(--green);word-break:break-all;background:var(--bg3);padding:8px 10px;border-radius:8px;border:1px solid var(--line);}
   #confetti{position:fixed;inset:0;pointer-events:none;z-index:50;}
-  .toast{position:fixed;left:50%;bottom:26px;transform:translateX(-50%);background:var(--moss);color:#06210f;font-weight:700;padding:12px 18px;border-radius:30px;z-index:60;opacity:0;transition:opacity .3s;box-shadow:0 6px 20px rgba(0,0,0,.4);}
+  .toast{position:fixed;left:50%;bottom:26px;transform:translateX(-50%);background:var(--green);color:#04140a;font-weight:700;font-family:var(--mono);padding:11px 18px;border-radius:10px;z-index:60;opacity:0;transition:opacity .3s;box-shadow:0 6px 20px rgba(0,0,0,.5);}
   .toast.show{opacity:1;}
-  .mode-banner{font-family:var(--mono);font-size:11px;color:var(--muted);text-align:center;margin-top:16px;}
-  .mode-banner .dot{display:inline-block;width:7px;height:7px;border-radius:50%;background:var(--moss);margin-right:5px;vertical-align:middle;box-shadow:0 0 8px var(--moss-glow);}
-  .mode-banner.local .dot{background:var(--ember);box-shadow:0 0 8px var(--ember-glow);}
 </style>
 </head>
 <body>
 
 <!-- SCREEN 1 — NAME -->
-<section id="s1" class="screen active center">
-  <div class="logo" id="logo1"><span class="tent">⛺</span> KAMPING</div>
-  <p class="tagline">Summer 2026 — pick your battlefield 🏕️</p>
-  <div style="width:100%;max-width:420px;margin-top:36px;">
-    <input type="text" id="nameInput" placeholder="What's your name?" autocomplete="given-name" maxlength="24" />
-    <button class="btn" id="enterBtn">ENTER THE CAMP</button>
-    <div class="mode-banner" id="modeBanner"><span class="dot"></span><span id="modeText"></span></div>
+<section id="s1" class="screen active">
+  <div class="scr-body center">
+    <div class="logo" id="logo1"><span class="tent">⛺</span> KAMPING</div>
+    <p class="tagline">SUMMER 2026 · PICK YOUR BATTLEFIELD</p>
+    <div style="width:100%;max-width:420px;margin-top:34px;">
+      <input type="text" id="nameInput" placeholder="What's your name?" autocomplete="given-name" maxlength="24" />
+      <button class="btn" id="enterBtn" style="margin-top:16px;">ENTER THE CAMP →</button>
+      <div class="status" id="modeBanner" style="justify-content:center;margin-top:18px;"><span class="dot" id="modeDot"></span><span id="modeText">connecting…</span></div>
+    </div>
   </div>
 </section>
 
@@ -153,41 +200,50 @@
 <section id="s2" class="screen">
   <div class="topbar">
     <div class="logo sm"><span class="tent">⛺</span> KAMPING</div>
-    <div class="pills"><div class="group-pill">Camp <b id="gp2"></b></div></div>
+    <div class="pills"><span class="status"><span class="dot" id="dot2"></span><span id="net2">live</span></span><div class="group-pill">Camp <b id="gp2"></b></div></div>
   </div>
-  <h1>When are you free?</h1>
-  <p class="sub">Tap every weekend you could make it.</p>
-  <div class="grid" id="availGrid"></div>
-  <button class="btn" id="availNext">NEXT → EXPLORE CAMPS</button>
+  <div class="scr-body">
+    <p class="eyebrow">Step 1 / 3 · Availability</p>
+    <h1>When could you go?</h1>
+    <p class="sub">Tap every summer month you're free to camp. Multiple is fine.</p>
+    <div class="months" id="availGrid"></div>
+  </div>
+  <div class="scr-foot"><button class="btn" id="availNext">NEXT · EXPLORE CAMPS →</button></div>
 </section>
 
 <!-- SCREEN 3 — DESTINATION CAROUSEL -->
 <section id="s3" class="screen">
   <div class="topbar">
     <div class="logo sm"><span class="tent">⛺</span> KAMPING</div>
-    <div class="pills"><div class="group-pill">Camp <b id="gp3"></b></div></div>
+    <div class="pills"><span class="status"><span class="dot" id="dot3"></span><span id="net3">live</span></span><div class="group-pill">Camp <b id="gp3"></b></div></div>
   </div>
-  <h2>Explore the camps</h2>
-  <div class="counter" id="cardCounter">1 / 10</div>
-  <div class="swiper" id="swiper"><div class="swiper-wrapper" id="swiperWrap"></div></div>
-  <div class="swipe-nav">
-    <button class="navbtn" id="prevCard" aria-label="previous">‹</button>
-    <span style="color:var(--muted);font-size:13px;" class="mono">swipe →</span>
-    <button class="navbtn" id="nextCard" aria-label="next">›</button>
+  <div class="scr-body">
+    <p class="eyebrow">Step 2 / 3 · Recon</p>
+    <h2>Explore the 10 camps</h2>
+    <div class="counter" id="cardCounter">1 / 10</div>
+    <div class="swiper" id="swiper"><div class="swiper-wrapper" id="swiperWrap"></div></div>
+    <div class="swipe-nav">
+      <button class="navbtn" id="prevCard" aria-label="previous">‹</button>
+      <span style="color:var(--muted);font-size:12px;" class="mono">swipe →</span>
+      <button class="navbtn" id="nextCard" aria-label="next">›</button>
+    </div>
   </div>
-  <button class="btn" id="toVote">GO TO VOTING 🗳️</button>
+  <div class="scr-foot"><button class="btn" id="toVote">GO TO VOTING 🗳️</button></div>
 </section>
 
 <!-- SCREEN 4 — ROUND 1 VOTE -->
 <section id="s4" class="screen">
   <div class="topbar">
     <div class="logo sm"><span class="tent">⛺</span> KAMPING</div>
-    <div class="pills"><div class="group-pill">Camp <b id="gp4"></b></div></div>
+    <div class="pills"><span class="status"><span class="dot" id="dot4"></span><span id="net4">live</span></span><div class="group-pill">Camp <b id="gp4"></b></div></div>
   </div>
-  <h1>Pick your TOP 3 🗳️</h1>
-  <p class="sub">Tap 3 camps you'd be happiest with.</p>
-  <div class="vgrid" id="r1grid"></div>
-  <button class="btn" id="submitR1" disabled>SUBMIT MY TOP 3</button>
+  <div class="scr-body">
+    <p class="eyebrow">Step 3 / 3 · Round 1</p>
+    <h1>Pick your TOP 3 🗳️</h1>
+    <p class="sub">Tap 3 camps you'd be happiest with.</p>
+    <div class="vgrid" id="r1grid"></div>
+  </div>
+  <div class="scr-foot"><button class="btn" id="submitR1" disabled>SUBMIT MY TOP 3</button></div>
 </section>
 
 <!-- SCREEN 5 — ROUND 1 RESULTS -->
@@ -195,43 +251,53 @@
   <div class="topbar">
     <div class="logo sm"><span class="tent">⛺</span> KAMPING</div>
     <div class="pills">
+      <span class="status"><span class="dot" id="dot5"></span><span id="net5">live</span></span>
       <div class="group-pill">Camp <b id="gp5"></b></div>
       <button class="icon-btn" id="share5" title="Invite friends">📲</button>
     </div>
   </div>
-  <h1>Round 1 results</h1>
-  <p class="sub">Live as the camp votes.</p>
-  <div class="voted-pill" id="r1voted">0 / 7 voted</div>
-  <div id="r1board"></div>
-  <div class="lock" id="r1lock">🔒 Boss unlocks Round 2 when everyone's voted</div>
-  <button class="btn" id="toR2" style="display:none;">GO TO FINAL VOTE →</button>
+  <div class="scr-body">
+    <h1>Round 1 results</h1>
+    <p class="sub">Updates live as the camp votes.</p>
+    <div class="voted-pill" id="r1voted">0 / 7 voted</div>
+    <div id="r1board"></div>
+    <div class="lock" id="r1lock">🔒 Boss unlocks Round 2 when everyone's voted</div>
+  </div>
+  <div class="scr-foot"><button class="btn" id="toR2" style="display:none;">GO TO FINAL VOTE →</button></div>
 </section>
 
 <!-- SCREEN 6 — ROUND 2 VOTE -->
 <section id="s6" class="screen">
   <div class="topbar">
     <div class="logo sm"><span class="tent">⛺</span> KAMPING</div>
-    <div class="pills"><div class="group-pill">Camp <b id="gp6"></b></div></div>
+    <div class="pills"><span class="status"><span class="dot" id="dot6"></span><span id="net6">live</span></span><div class="group-pill">Camp <b id="gp6"></b></div></div>
   </div>
-  <h1>Final vote: pick 1 🏆</h1>
-  <p class="sub">The top 3 from Round 1. Choose the one.</p>
-  <div class="vgrid" id="r2grid"></div>
-  <button class="btn" id="submitR2" disabled>LOCK IN MY WINNER</button>
+  <div class="scr-body">
+    <h1>Final vote: pick 1 🏆</h1>
+    <p class="sub">The top 3 from Round 1. Choose the one.</p>
+    <div class="vgrid" id="r2grid"></div>
+  </div>
+  <div class="scr-foot"><button class="btn" id="submitR2" disabled>LOCK IN MY WINNER</button></div>
 </section>
 
 <!-- SCREEN 7 — WINNER -->
 <section id="s7" class="screen">
-  <div class="winner-hero">
-    <div class="scene" id="winScene"></div>
-    <div class="ov"><div><div style="color:var(--ember);font-weight:700;font-size:13px;font-family:var(--mono);">🏆 KAMPING WINNER</div><div class="wn" id="winName"></div></div></div>
+  <div class="scr-body">
+    <div class="winner-hero">
+      <div class="scene" id="winScene"></div>
+      <img class="photo" id="winPhoto" alt="" />
+      <div class="ov"><div><div style="color:var(--ember);font-weight:700;font-size:12px;font-family:var(--mono);letter-spacing:1px;">🏆 KAMPING WINNER</div><div class="wn" id="winName"></div></div></div>
+    </div>
+    <div id="winMeta"></div>
+    <div class="avail-box">
+      <div class="lab" id="winDatesLab">Best month — most of you free</div>
+      <div class="dates" id="winDates">—</div>
+    </div>
   </div>
-  <div id="winMeta"></div>
-  <div class="avail-box">
-    <div class="lab" id="winDatesLab">Best dates — everyone free</div>
-    <div class="dates" id="winDates">—</div>
+  <div class="scr-foot">
+    <button class="btn" id="shareBtn">SHARE WINNER TO GROUP 📲</button>
+    <button class="btn ghost" id="restartBtn">Start over</button>
   </div>
-  <button class="btn" id="shareBtn">SHARE WINNER TO GROUP 📲</button>
-  <button class="btn ghost" id="restartBtn">Start over</button>
 </section>
 
 <canvas id="confetti"></canvas>
@@ -240,49 +306,51 @@
 <script src="https://cdn.jsdelivr.net/npm/swiper@11/swiper-bundle.min.js"></script>
 <script>
 /* ============================================================
-   KAMPING — HB-56 P-2 · single-file app
+   KAMPING — HB-56 P-3 · single-file app
    SHARED VOTING: jsonblob.com — keyless, no account, free.
      - First device to start a camp POSTs a blob → gets an id.
      - That id rides in the share URL (?g=ID). Friends open the
        URL, app reads/writes the same blob, polls every 8s.
-     - The id is long + unguessable: it IS the access capability.
-       Only people you send the URL to can see/affect the camp.
+     - jsonblob exposes the Location header via CORS (verified),
+       so the client reads the new id directly.
    SECURITY: no secret/API key is stored in this file, so it is
      safe in a PUBLIC repo. The app links to nothing internal.
-   FALLBACK: any network failure → local-only mode (localStorage),
-     compare via screenshots.
+   RESILIENCE: connectivity is re-tested on every sync/pull — a
+     transient failure drops to local cache for that cycle only,
+     and the app reconnects automatically (no permanent offline).
    ============================================================ */
 
 const API_BASE = "https://jsonblob.com/api/jsonBlob";
 const PARTY_SIZE = 7;
 const POLL_MS = 8000;
 
-/* ---------- DESTINATIONS (from brief; scene = generated art) ---------- */
+/* ---------- DESTINATIONS (data from brief; photos verified Wikimedia 200; scene = generated fallback) ---------- */
 const DESTINATIONS = [
-  {id:1,name:"Peak District",campsite:"Fieldhead Campsite, Edale",distance:140,petrolPP:14,sitePerNight:13,totalPP:40,rating:4,vibe:"Classic hiking trip. Pennine Way trailhead. Mam Tor views.",facilities:["🚿 Showers","🛒 Shop & Cafe","🍺 Pub 2 min","🐶 Dog Friendly"],activities:["Kinder Scout","Mam Tor","Caves","Stanage Climbing"],bookingUrl:"https://www.campsites.co.uk",mapsUrl:"https://maps.google.com/?q=Fieldhead+Campsite+Edale",emoji:"🏔️",highlight:"Pennine Way starts here",scene:"mountain"},
-  {id:2,name:"Lake District — Langdale",campsite:"Great Langdale Campsite (National Trust)",distance:280,petrolPP:28,sitePerNight:14,totalPP:56,rating:5,vibe:"Campsite of the Year 2025. Pub opposite the gate. Epic scenery.",facilities:["🛒 Shop + Croissants","🚿 Showers","🍺 Pub 2 min","🐶 Dog Friendly","🏕️ Pods"],activities:["Langdale Pikes","Scafell Pike","Blea Tarn","Waterfalls","E-Bikes"],bookingUrl:"https://www.nationaltrust.org.uk/holidays",mapsUrl:"https://maps.google.com/?q=Great+Langdale+Campsite",emoji:"⛰️",highlight:"🏆 Campsite of the Year 2025",scene:"mountain"},
-  {id:3,name:"Lake District — Windermere",campsite:"Low Wray Campsite (National Trust)",distance:280,petrolPP:28,sitePerNight:18,totalPP:64,rating:5,vibe:"Right on Lake Windermere. Wild swimming, paddleboards, pizza.",facilities:["🚿 Modern Showers","🛒 Shop","🍕 Wood-Fired Pizza","🛶 Kayaks","🐶 Dog Friendly"],activities:["Windermere Swim","Paddleboarding","Wray Castle","Cycling","Ambleside"],bookingUrl:"https://www.nationaltrust.org.uk/holidays",mapsUrl:"https://maps.google.com/?q=Low+Wray+Campsite+Windermere",emoji:"🌊",highlight:"Wild swimming on Windermere",scene:"lake"},
-  {id:4,name:"Pembrokeshire",campsite:"Lleithyr Farm, St Davids",distance:230,petrolPP:23,sitePerNight:17,totalPP:57,rating:5,vibe:"Best beach trip in Wales. Dolphins, coasteering, Whitesands Bay.",facilities:["🚿 Showers","🛒 Farm Shop","🥾 Coastal Path","🐶 Dog Friendly","🔥 Campfires"],activities:["Whitesands Beach","Coasteering","Surfing","Dolphins","St Davids"],bookingUrl:"https://www.campsites.co.uk",mapsUrl:"https://maps.google.com/?q=Lleithyr+Farm+St+Davids",emoji:"🏖️",highlight:"186 miles of coastline",scene:"coast"},
-  {id:5,name:"New Forest",campsite:"Holmsley Campsite",distance:90,petrolPP:9,sitePerNight:20,totalPP:49,rating:4,vibe:"Closest option. Forest ponies, cycling trails, campfires.",facilities:["🚿 Hot Showers","🛒 Shop","🔥 Campfires","🚲 Cycle Trails","🐶 Dog Friendly"],activities:["Forest Cycling","Wild Ponies","Lyndhurst","Bournemouth","Beaulieu"],bookingUrl:"https://www.forestholidays.co.uk",mapsUrl:"https://maps.google.com/?q=Holmsley+Campsite+New+Forest",emoji:"🌿",highlight:"Cheapest petrol — only £9pp",scene:"forest"},
-  {id:6,name:"Loch Lomond",campsite:"Cashel Campsite, Rowardennan",distance:380,petrolPP:38,sitePerNight:12,totalPP:62,rating:5,vibe:"Scotland. Ben Lomond. Lochside wild swimming. The big one.",facilities:["🚿 Showers","🚻 Toilets","🏕️ Lochside Pitches","🐶 Dog Friendly"],activities:["Ben Lomond","West Highland Way","Loch Swim","Rob Roy","Stirling"],bookingUrl:"https://www.lochlomond.net",mapsUrl:"https://maps.google.com/?q=Cashel+Campsite+Loch+Lomond",emoji:"🏴",highlight:"Wild camping is LEGAL in Scotland",scene:"lake"},
-  {id:7,name:"Yorkshire Dales",campsite:"Horton in Ribblesdale",distance:210,petrolPP:21,sitePerNight:13,totalPP:47,rating:4,vibe:"Three Peaks country. Limestone gorges, waterfalls, Northern grit.",facilities:["🚿 Showers","🚻 Toilets","🍺 Village Pub","🐶 Dog Friendly"],activities:["Three Peaks","Gordale Scar","Janet's Foss","Malham Cove","Aysgarth"],bookingUrl:"https://www.yorkshiredales.org.uk",mapsUrl:"https://maps.google.com/?q=Horton+in+Ribblesdale+Campsite",emoji:"🗻",highlight:"Walk behind a waterfall",scene:"mountain"},
-  {id:8,name:"Snowdonia",campsite:"Bryn Gwynant, Nantgwynant",distance:200,petrolPP:20,sitePerNight:14,totalPP:48,rating:4,vibe:"Climb Snowdon. Zip World. Lake swimming. Wales at its wildest.",facilities:["🚿 Showers","🚻 Toilets","🏊 Lake Swim","🏔️ Mtn Views","🐶 Dog Friendly"],activities:["Snowdon Summit","Zip World","Surf Snowdonia","Lake Swim","Conwy Castle"],bookingUrl:"https://www.yha.org.uk",mapsUrl:"https://maps.google.com/?q=Bryn+Gwynant+Nantgwynant",emoji:"🏔️",highlight:"Fastest zip line on Earth nearby",scene:"snow"},
-  {id:9,name:"Brecon Beacons",campsite:"Pencelli Castle Campsite",distance:160,petrolPP:16,sitePerNight:13,totalPP:42,rating:4,vibe:"Best stargazing in the UK. Walk behind waterfalls. Pen y Fan.",facilities:["🚿 Showers","🛒 Shop","🛶 Canal-side","🔥 Campfires","🐶 Dog Friendly"],activities:["Pen y Fan","Four Waterfalls","Walk-Behind Falls","Dark Sky Stars","Canoeing"],bookingUrl:"https://www.pencelli-castle.com",mapsUrl:"https://maps.google.com/?q=Pencelli+Castle+Campsite+Brecon",emoji:"🌌",highlight:"UK's best stargazing — Dark Sky Reserve",scene:"stars"},
-  {id:10,name:"Norfolk Coast",campsite:"Holkham Estate, Wells-next-the-Sea",distance:130,petrolPP:13,sitePerNight:16,totalPP:45,rating:4,vibe:"Best beach in England. 3 miles of empty white sand, pine backdrop.",facilities:["🚿 Showers","🛒 Shop","🔥 Campfires","🏖️ Beach Access","🐶 Dog Friendly"],activities:["Holkham Beach","Seal Colony","Coastal Cycling","Wells Harbour","Crabbing"],bookingUrl:"https://www.holkham.co.uk",mapsUrl:"https://maps.google.com/?q=Holkham+Beach+Wells-next-the-Sea",emoji:"🌊",highlight:"Voted best beach in England",scene:"coast"}
+  {id:1,name:"Peak District",campsite:"Fieldhead Campsite, Edale",distance:140,petrolPP:14,sitePerNight:13,totalPP:40,rating:4,vibe:"Classic hiking trip. Pennine Way trailhead. Mam Tor views.",facilities:["🚿 Showers","🛒 Shop & Cafe","🍺 Pub 2 min","🐶 Dog Friendly"],activities:["Kinder Scout","Mam Tor","Caves","Stanage Climbing"],bookingUrl:"https://www.campsites.co.uk",mapsQ:"Fieldhead Campsite Edale",emoji:"🏔️",highlight:"Pennine Way starts here",scene:"mountain",img:"https://upload.wikimedia.org/wikipedia/commons/f/f0/Mam_Tor.jpg"},
+  {id:2,name:"Lake District — Langdale",campsite:"Great Langdale Campsite (National Trust)",distance:280,petrolPP:28,sitePerNight:14,totalPP:56,rating:5,vibe:"Campsite of the Year 2025. Pub opposite the gate. Epic scenery.",facilities:["🛒 Shop + Croissants","🚿 Showers","🍺 Pub 2 min","🐶 Dog Friendly","🏕️ Pods"],activities:["Langdale Pikes","Scafell Pike","Blea Tarn","Waterfalls","E-Bikes"],bookingUrl:"https://www.nationaltrust.org.uk/holidays",mapsQ:"Great Langdale Campsite",emoji:"⛰️",highlight:"🏆 Campsite of the Year 2025",scene:"mountain",img:"https://upload.wikimedia.org/wikipedia/commons/e/e1/Great_Langdale_Meets_Windermere.jpg"},
+  {id:3,name:"Lake District — Windermere",campsite:"Low Wray Campsite (National Trust)",distance:280,petrolPP:28,sitePerNight:18,totalPP:64,rating:5,vibe:"Right on Lake Windermere. Wild swimming, paddleboards, pizza.",facilities:["🚿 Modern Showers","🛒 Shop","🍕 Wood-Fired Pizza","🛶 Kayaks","🐶 Dog Friendly"],activities:["Windermere Swim","Paddleboarding","Wray Castle","Cycling","Ambleside"],bookingUrl:"https://www.nationaltrust.org.uk/holidays",mapsQ:"Low Wray Campsite Windermere",emoji:"🌊",highlight:"Wild swimming on Windermere",scene:"lake",img:"https://upload.wikimedia.org/wikipedia/commons/2/20/Windermere_Lake_District_from_hill.JPG"},
+  {id:4,name:"Pembrokeshire",campsite:"Lleithyr Farm, St Davids",distance:230,petrolPP:23,sitePerNight:17,totalPP:57,rating:5,vibe:"Best beach trip in Wales. Dolphins, coasteering, Whitesands Bay.",facilities:["🚿 Showers","🛒 Farm Shop","🥾 Coastal Path","🐶 Dog Friendly","🔥 Campfires"],activities:["Whitesands Beach","Coasteering","Surfing","Dolphins","St Davids"],bookingUrl:"https://www.campsites.co.uk",mapsQ:"Lleithyr Farm St Davids",emoji:"🏖️",highlight:"186 miles of coastline",scene:"coast",img:"https://upload.wikimedia.org/wikipedia/commons/9/98/Tenby_Harbour_-_geograph.org.uk_-_3983172.jpg"},
+  {id:5,name:"New Forest",campsite:"Holmsley Campsite",distance:90,petrolPP:9,sitePerNight:20,totalPP:49,rating:4,vibe:"Closest option. Forest ponies, cycling trails, campfires.",facilities:["🚿 Hot Showers","🛒 Shop","🔥 Campfires","🚲 Cycle Trails","🐶 Dog Friendly"],activities:["Forest Cycling","Wild Ponies","Lyndhurst","Bournemouth","Beaulieu"],bookingUrl:"https://www.forestholidays.co.uk",mapsQ:"Holmsley Campsite New Forest",emoji:"🌿",highlight:"Cheapest petrol — only £9pp",scene:"forest",img:"https://upload.wikimedia.org/wikipedia/commons/3/31/Beech_trees_in_Mallard_Wood%2C_New_Forest_-_geograph.org.uk_-_779513.jpg"},
+  {id:6,name:"Loch Lomond",campsite:"Cashel Campsite, Rowardennan",distance:380,petrolPP:38,sitePerNight:12,totalPP:62,rating:5,vibe:"Scotland. Ben Lomond. Lochside wild swimming. The big one.",facilities:["🚿 Showers","🚻 Toilets","🏕️ Lochside Pitches","🐶 Dog Friendly"],activities:["Ben Lomond","West Highland Way","Loch Swim","Rob Roy","Stirling"],bookingUrl:"https://www.lochlomond.net",mapsQ:"Cashel Campsite Loch Lomond",emoji:"🏴",highlight:"Wild camping is LEGAL in Scotland",scene:"lake",img:"https://upload.wikimedia.org/wikipedia/commons/a/a8/Loch_Lomond_2013_2.JPG"},
+  {id:7,name:"Yorkshire Dales",campsite:"Horton in Ribblesdale",distance:210,petrolPP:21,sitePerNight:13,totalPP:47,rating:4,vibe:"Three Peaks country. Limestone gorges, waterfalls, Northern grit.",facilities:["🚿 Showers","🚻 Toilets","🍺 Village Pub","🐶 Dog Friendly"],activities:["Three Peaks","Gordale Scar","Janet's Foss","Malham Cove","Aysgarth"],bookingUrl:"https://www.yorkshiredales.org.uk",mapsQ:"Horton in Ribblesdale Campsite",emoji:"🗻",highlight:"Walk behind a waterfall",scene:"mountain",img:"https://upload.wikimedia.org/wikipedia/commons/1/13/2015_Swaledale_from_Kisdon_Hill.jpg"},
+  {id:8,name:"Snowdonia",campsite:"Bryn Gwynant, Nantgwynant",distance:200,petrolPP:20,sitePerNight:14,totalPP:48,rating:4,vibe:"Climb Snowdon. Zip World. Lake swimming. Wales at its wildest.",facilities:["🚿 Showers","🚻 Toilets","🏊 Lake Swim","🏔️ Mtn Views","🐶 Dog Friendly"],activities:["Snowdon Summit","Zip World","Surf Snowdonia","Lake Swim","Conwy Castle"],bookingUrl:"https://www.yha.org.uk",mapsQ:"Bryn Gwynant Nantgwynant",emoji:"🏔️",highlight:"Fastest zip line on Earth nearby",scene:"snow",img:"https://upload.wikimedia.org/wikipedia/commons/5/52/Snowdon_Ranger_path_on_a_cold_February_day._%2816431627106%29.jpg"},
+  {id:9,name:"Brecon Beacons",campsite:"Pencelli Castle Campsite",distance:160,petrolPP:16,sitePerNight:13,totalPP:42,rating:4,vibe:"Best stargazing in the UK. Walk behind waterfalls. Pen y Fan.",facilities:["🚿 Showers","🛒 Shop","🛶 Canal-side","🔥 Campfires","🐶 Dog Friendly"],activities:["Pen y Fan","Four Waterfalls","Walk-Behind Falls","Dark Sky Stars","Canoeing"],bookingUrl:"https://www.pencelli-castle.com",mapsQ:"Pencelli Castle Campsite Brecon",emoji:"🌌",highlight:"UK's best stargazing — Dark Sky Reserve",scene:"stars",img:"https://upload.wikimedia.org/wikipedia/commons/0/03/View_from_Cribyn_to_Pen_Y_Fan_-_geograph.org.uk_-_3447271_%28cropped%29.jpg"},
+  {id:10,name:"Norfolk Coast",campsite:"Holkham Estate, Wells-next-the-Sea",distance:130,petrolPP:13,sitePerNight:16,totalPP:45,rating:4,vibe:"Best beach in England. 3 miles of empty white sand, pine backdrop.",facilities:["🚿 Showers","🛒 Shop","🔥 Campfires","🏖️ Beach Access","🐶 Dog Friendly"],activities:["Holkham Beach","Seal Colony","Coastal Cycling","Wells Harbour","Crabbing"],bookingUrl:"https://www.holkham.co.uk",mapsQ:"Holkham Beach Wells-next-the-Sea",emoji:"🌊",highlight:"Voted best beach in England",scene:"coast",img:"https://upload.wikimedia.org/wikipedia/commons/1/17/Wells-next-the-Sea_Quayside_Aug_2020.jpg"}
 ];
 
-const WEEKENDS = [
-  {id:"w0620",label:"Jun 20–22"},{id:"w0627",label:"Jun 27–29"},
-  {id:"w0704",label:"Jul 4–6"},{id:"w0711",label:"Jul 11–13"},
-  {id:"w0718",label:"Jul 18–20"},{id:"w0725",label:"Jul 25–27"},
-  {id:"w0801",label:"Aug 1–3"},{id:"w0808",label:"Aug 8–10"},
-  {id:"w0815",label:"Aug 15–17"},{id:"w0822",label:"Aug 22–24"},
-  {id:"w0829",label:"Aug 29–31"}
+/* MONTHS — Boss asked for June / July / August availability */
+const MONTHS = [
+  {id:"jun",label:"June",emoji:"🌱",hint:"Long days, quieter sites, cooler nights"},
+  {id:"jul",label:"July",emoji:"☀️",hint:"Peak summer, warmest swimming, busy"},
+  {id:"aug",label:"August",emoji:"🔥",hint:"Bank holiday weekend, festival season"}
 ];
+const monthLabel = id => (MONTHS.find(m=>m.id===id)||{}).label || id;
 
 const destById = id => DESTINATIONS.find(d => d.id === id);
+const mapEmbed = q => `https://maps.google.com/maps?q=${encodeURIComponent(q)}&z=10&output=embed`;
+const mapsLink = q => `https://maps.google.com/?q=${encodeURIComponent(q)}`;
 
-/* ---------- GENERATED SVG SCENERY (self-contained, no external img) ---------- */
+/* ---------- GENERATED SVG SCENERY (self-contained fallback, no external img) ---------- */
 function rng(seed){let t=seed*0x6D2B79F5;return function(){t=Math.imul(t^(t>>>15),t|1);t^=t+Math.imul(t^(t>>>7),t|61);return((t^(t>>>14))>>>0)/4294967296;};}
 function ridge(baseY,amp,steps,r,phase){
   let p=`0,300 0,${baseY}`;
@@ -346,31 +414,31 @@ function scene(d){
 
 /* ---------- STATE ---------- */
 let BLOB_ID = null;
-let LOCAL_MODE = false;
+let ONLINE = true;                 // current connectivity (re-evaluated each cycle, never latched)
 let swiper = null, pollTimer = null;
 const me = { name: localStorage.getItem("kamping_name") || "", availability:[], round1:[], round2:null };
 let shared = { round2Unlocked:false, members:{} };
 
-function shortCode(){ return BLOB_ID ? BLOB_ID.slice(-5).toUpperCase() : "—"; }
+function shortCode(){ return BLOB_ID ? BLOB_ID.slice(-5).toUpperCase() : "SOLO"; }
 function shareURL(){ return location.origin + location.pathname + (BLOB_ID ? "?g="+BLOB_ID : ""); }
 function memberSnapshot(){ return { availability:[...me.availability], round1:[...me.round1], round2:me.round2 }; }
 function mergeMe(){ if(me.name) shared.members[me.name] = memberSnapshot(); }
 
-/* ---------- STORAGE (local fallback) ---------- */
+/* ---------- STORAGE (local cache / fallback) ---------- */
 const localKey = () => `kamping_${BLOB_ID || localStorage.getItem("kamping_local") || "solo"}`;
 function saveLocal(){ try{ localStorage.setItem(localKey(), JSON.stringify(shared)); }catch(e){} }
 function loadLocal(){ try{ const raw=localStorage.getItem(localKey()); if(raw) shared=JSON.parse(raw); }catch(e){} }
 
 /* ---------- JSONBLOB (keyless) ---------- */
 async function blobRead(){
-  const r = await fetch(`${API_BASE}/${BLOB_ID}`, { headers:{ "Accept":"application/json" } });
+  const r = await fetch(`${API_BASE}/${BLOB_ID}`, { headers:{ "Accept":"application/json" }, cache:"no-store" });
   if(!r.ok) throw new Error("read "+r.status);
   return await r.json();
 }
 async function blobCreate(obj){
   const r = await fetch(API_BASE, { method:"POST", headers:{ "Content-Type":"application/json","Accept":"application/json" }, body:JSON.stringify(obj) });
   if(!r.ok) throw new Error("create "+r.status);
-  const loc = r.headers.get("Location") || r.headers.get("X-jsonblob") || "";
+  const loc = r.headers.get("Location") || "";
   const id = loc.split("/").pop();
   if(!id) throw new Error("no id");
   return id;
@@ -379,35 +447,36 @@ async function blobUpdate(obj){
   const r = await fetch(`${API_BASE}/${BLOB_ID}`, { method:"PUT", headers:{ "Content-Type":"application/json","Accept":"application/json" }, body:JSON.stringify(obj) });
   if(!r.ok) throw new Error("update "+r.status);
 }
+function mergeRemote(remote){
+  if(remote && remote.members){
+    shared.members = Object.assign({}, remote.members, shared.members);
+    shared.round2Unlocked = remote.round2Unlocked || shared.round2Unlocked;
+  }
+}
 
+/* PUSH local state up. Re-evaluates ONLINE each call — no permanent offline latch. */
 async function sync(){
   mergeMe();
-  if(LOCAL_MODE){ saveLocal(); return; }
   try{
     if(!BLOB_ID){
       BLOB_ID = await blobCreate(shared);
       reflectGroupInURL();
     } else {
-      let remote = null;
-      try{ remote = await blobRead(); }catch(e){ remote = null; }
-      if(remote && remote.members){
-        shared.members = Object.assign({}, remote.members, shared.members);
-        shared.round2Unlocked = remote.round2Unlocked || shared.round2Unlocked;
-        mergeMe();
-      }
+      let remote=null; try{ remote = await blobRead(); }catch(e){ remote=null; }
+      mergeRemote(remote); mergeMe();
       await blobUpdate(shared);
     }
-    saveLocal();
-  }catch(e){ LOCAL_MODE = true; setBanner(); saveLocal(); }
+    ONLINE = true; saveLocal(); setBanner();
+  }catch(e){ ONLINE = false; saveLocal(); setBanner(); }
 }
+/* PULL latest down. Same non-latching behaviour. */
 async function pull(){
-  if(LOCAL_MODE || !BLOB_ID){ loadLocal(); mergeMe(); return; }
+  if(!BLOB_ID){ loadLocal(); mergeMe(); return; }
   try{
     const remote = await blobRead();
-    shared.members = Object.assign({}, remote.members||{}, { [me.name]: memberSnapshot() });
-    shared.round2Unlocked = remote.round2Unlocked || shared.round2Unlocked;
-    saveLocal();
-  }catch(e){ LOCAL_MODE = true; setBanner(); loadLocal(); }
+    mergeRemote(remote); mergeMe();
+    ONLINE = true; saveLocal(); setBanner();
+  }catch(e){ ONLINE = false; loadLocal(); mergeMe(); setBanner(); }
 }
 
 function reflectGroupInURL(){
@@ -421,20 +490,28 @@ function startPolling(onTick){ stopPolling(); pollTimer=setInterval(async()=>{ a
 function stopPolling(){ if(pollTimer){ clearInterval(pollTimer); pollTimer=null; } }
 
 /* ---------- NAV / UI ---------- */
+/* HB-56 P-3 NAV FIX: each screen is a fixed full-viewport shell with its own
+   scroll area; on show() we reset that area to the top so the next section is
+   never hidden below the previous page's scroll position. */
 function show(id){
   document.querySelectorAll(".screen").forEach(s=>s.classList.remove("active"));
-  document.getElementById(id).classList.add("active");
-  window.scrollTo(0,0); stopPolling();
+  const el=document.getElementById(id); el.classList.add("active");
+  const body=el.querySelector(".scr-body"); if(body) body.scrollTop=0;
+  if(document.activeElement && document.activeElement.blur) document.activeElement.blur();
+  stopPolling();
   if(id==="s5") enterResults();
   if(id==="s6") enterRound2();
 }
 function setGroupPills(){ ["gp2","gp3","gp4","gp5","gp6"].forEach(i=>{const el=document.getElementById(i);if(el)el.textContent=shortCode();}); }
 function toast(msg){ const t=document.getElementById("toast"); t.textContent=msg; t.classList.add("show"); setTimeout(()=>t.classList.remove("show"),2200); }
 function setBanner(){
-  const b=document.getElementById("modeBanner"), t=document.getElementById("modeText");
-  if(!b) return;
-  b.classList.toggle("local", LOCAL_MODE);
-  t.textContent = LOCAL_MODE ? "Offline — local mode (share screenshots)" : "Live — votes sync across the camp";
+  const solo = !BLOB_ID;
+  const txt = solo ? "solo — share to sync" : (ONLINE ? "live · synced" : "reconnecting…");
+  document.querySelectorAll(".dot").forEach(d=>d.classList.toggle("off", !ONLINE && !solo));
+  ["net2","net3","net4","net5","net6"].forEach(i=>{const e=document.getElementById(i);if(e)e.textContent=ONLINE?"live":"sync…";});
+  const t=document.getElementById("modeText"), dot=document.getElementById("modeDot");
+  if(t) t.textContent = ONLINE ? "connected · votes sync across the camp" : "offline — saved on this phone, will reconnect";
+  if(dot) dot.classList.toggle("off", !ONLINE);
 }
 function inviteShare(){
   const url=shareURL();
@@ -443,6 +520,9 @@ function inviteShare(){
   else { copy(url); window.open(`https://wa.me/?text=${encodeURIComponent(msg)}`,"_blank"); }
 }
 function copy(txt){ try{ navigator.clipboard.writeText(txt); toast("Link copied"); }catch(e){} }
+
+/* photo layer helper — fades photo in over the SVG scene, hides on error */
+function photoTag(d,cls){ return `<img class="photo ${cls||''}" src="${d.img}" alt="${d.name}" loading="lazy" decoding="async" onload="this.classList.add('in')" onerror="this.remove()"/>`; }
 
 /* ---------- SCREEN 1 ---------- */
 function initS1(){
@@ -459,20 +539,24 @@ function initS1(){
   bindHoldToUnlock(document.getElementById("logo1"));
 }
 
-/* ---------- SCREEN 2 ---------- */
+/* ---------- SCREEN 2 — AVAILABILITY (months) ---------- */
 function buildAvailGrid(){
   const wrap=document.getElementById("availGrid"); wrap.innerHTML="";
-  WEEKENDS.forEach(w=>{
+  MONTHS.forEach(m=>{
     const b=document.createElement("div");
-    b.className="weekend"+(me.availability.includes(w.id)?" on":"");
-    b.textContent=w.label;
-    b.onclick=()=>{ const i=me.availability.indexOf(w.id); if(i>=0)me.availability.splice(i,1); else me.availability.push(w.id); b.classList.toggle("on"); };
+    b.className="month"+(me.availability.includes(m.id)?" on":"");
+    b.innerHTML=`<span class="memoji">${m.emoji}</span><div><div class="mname">${m.label}</div><div class="mhint">${m.hint}</div></div><span class="mtick">✓</span>`;
+    b.onclick=()=>{ const i=me.availability.indexOf(m.id); if(i>=0)me.availability.splice(i,1); else me.availability.push(m.id); b.classList.toggle("on"); };
     wrap.appendChild(b);
   });
-  document.getElementById("availNext").onclick=async()=>{ await sync(); buildCarousel(); show("s3"); };
+  document.getElementById("availNext").onclick=async()=>{
+    const btn=document.getElementById("availNext"); btn.textContent="Saving…";
+    await sync(); btn.textContent="NEXT · EXPLORE CAMPS →";
+    buildCarousel(); show("s3");
+  };
 }
 
-/* ---------- SCREEN 3 ---------- */
+/* ---------- SCREEN 3 — CAROUSEL ---------- */
 function buildCarousel(){
   if(swiper) return;
   const wrap=document.getElementById("swiperWrap"); wrap.innerHTML="";
@@ -481,26 +565,39 @@ function buildCarousel(){
     slide.className="swiper-slide";
     slide.innerHTML=`
       <div class="dcard">
-        <div class="hero">${scene(d)}<span class="htag">${d.emoji} ${d.distance} mi · ${d.campsite.split(",")[0]}</span></div>
+        <div class="hero">
+          <div class="scene">${scene(d)}</div>
+          ${photoTag(d)}
+          <div class="grad"></div>
+          <span class="htag">${d.emoji} ${d.distance} mi · ${d.campsite.split(",")[0]}</span>
+          <span class="rtag">${"★".repeat(d.rating)}</span>
+        </div>
         <div class="body">
-          <p class="dname">${d.emoji} ${d.name}</p>
-          <p class="cname">${d.campsite}</p>
-          <div class="stars">${"★".repeat(d.rating)}${"☆".repeat(5-d.rating)}</div>
+          <p class="dname">${d.name}</p>
+          <p class="cname">▸ ${d.campsite}</p>
           <p class="vibe">${d.vibe}</p>
-          <div class="highlight">✨ ${d.highlight}</div>
+          <div class="highlight">✦ ${d.highlight}</div>
           <div class="costrow">
             <div class="cost"><div class="v">£${d.totalPP}</div><div class="l">Total pp</div></div>
             <div class="cost"><div class="v">£${d.petrolPP}</div><div class="l">⛽ Petrol</div></div>
             <div class="cost"><div class="v">£${d.sitePerNight}</div><div class="l">🏕️ /night</div></div>
           </div>
+          <div class="specrow"><span>DRIVE <b>${d.distance} mi</b></span><span>RATING <b>${d.rating}/5</b></span><span>FROM <b>£${d.totalPP}pp</b></span></div>
           <div class="chips">${d.facilities.map(f=>`<span class="chip">${f}</span>`).join("")}</div>
           <div class="chips">${d.activities.map(a=>`<span class="chip act">${a}</span>`).join("")}</div>
+          <div class="mapwrap" data-map="${mapEmbed(d.mapsQ)}" style="display:none;"></div>
           <div class="linkrow">
-            <a href="${d.mapsUrl}" target="_blank" rel="noopener noreferrer">📍 Maps</a>
+            <button class="mapbtn" type="button">🗺️ Show map</button>
+            <a href="${mapsLink(d.mapsQ)}" target="_blank" rel="noopener noreferrer">📍 Directions</a>
             <a href="${d.bookingUrl}" target="_blank" rel="noopener noreferrer">🔗 Book</a>
           </div>
         </div>
       </div>`;
+    const mb=slide.querySelector(".mapbtn"), mw=slide.querySelector(".mapwrap");
+    mb.onclick=()=>{
+      if(mw.style.display==="none"){ if(!mw.innerHTML) mw.innerHTML=`<iframe loading="lazy" referrerpolicy="no-referrer" src="${mw.dataset.map}" title="map"></iframe>`; mw.style.display="block"; mb.textContent="🗺️ Hide map"; }
+      else { mw.style.display="none"; mb.textContent="🗺️ Show map"; }
+    };
     wrap.appendChild(slide);
   });
   swiper=new Swiper("#swiper",{ spaceBetween:14, on:{ slideChange(){ document.getElementById("cardCounter").textContent=`${this.activeIndex+1} / ${DESTINATIONS.length}`; } } });
@@ -510,12 +607,13 @@ function buildCarousel(){
 }
 
 /* ---------- SCREEN 4 — ROUND 1 ---------- */
+function voteCardHTML(d){ return `<div class="vthumb"><div class="scene">${scene(d)}</div>${photoTag(d)}</div><div class="vn">${d.emoji} ${d.name}</div><div class="check">✓</div>`; }
 function buildR1(){
   const grid=document.getElementById("r1grid"); grid.innerHTML="";
   DESTINATIONS.forEach(d=>{
     const c=document.createElement("div");
     c.className="vcard"+(me.round1.includes(d.id)?" sel":"");
-    c.innerHTML=`<div class="vthumb">${scene(d)}</div><div class="vn">${d.emoji} ${d.name}</div><div class="check">✓</div>`;
+    c.innerHTML=voteCardHTML(d);
     c.onclick=()=>{
       const i=me.round1.indexOf(d.id);
       if(i>=0){ me.round1.splice(i,1); c.classList.remove("sel"); }
@@ -527,7 +625,7 @@ function buildR1(){
   });
   const btn=document.getElementById("submitR1");
   btn.disabled = me.round1.length!==3;
-  if(me.round1.length) btn.textContent="UPDATE MY TOP 3";
+  btn.textContent = me.round1.length ? "UPDATE MY TOP 3" : "SUBMIT MY TOP 3";
   btn.onclick=async()=>{ if(me.round1.length!==3) return; btn.textContent="Saving…"; await sync(); btn.textContent="UPDATE MY TOP 3"; show("s5"); };
 }
 
@@ -553,7 +651,7 @@ function renderResults(){
   const everyoneVoted=voters>=PARTY_SIZE;
   const toR2=document.getElementById("toR2");
   if(shared.round2Unlocked){ document.getElementById("r1lock").textContent="🔓 Round 2 unlocked by Boss"; toR2.style.display="flex"; }
-  else if(everyoneVoted){ document.getElementById("r1lock").textContent="✅ Everyone voted — Boss holds the logo 3s to unlock Round 2"; toR2.style.display="none"; }
+  else if(everyoneVoted){ document.getElementById("r1lock").textContent="✅ Everyone voted — Boss holds the ⛺ logo 3s to unlock Round 2"; toR2.style.display="none"; }
   else { document.getElementById("r1lock").textContent=`🔒 Round 2 unlocks when all ${PARTY_SIZE} have voted (or Boss overrides)`; toR2.style.display="none"; }
   toR2.onclick=()=>show("s6");
   if(everyoneVoted && !renderResults._done){ renderResults._done=true; burstConfetti(); }
@@ -567,7 +665,7 @@ function buildR2(){
     const d=destById(id);
     const c=document.createElement("div");
     c.className="vcard"+(me.round2===id?" sel":"");
-    c.innerHTML=`<div class="vthumb">${scene(d)}</div><div class="vn">${d.emoji} ${d.name}</div><div class="check">✓</div>`;
+    c.innerHTML=voteCardHTML(d);
     c.onclick=()=>{ me.round2=id; grid.querySelectorAll(".vcard").forEach(x=>x.classList.remove("sel")); c.classList.add("sel"); document.getElementById("submitR2").disabled=false; };
     grid.appendChild(c);
   });
@@ -580,10 +678,10 @@ function buildR2(){
 function tallyRound2(){ const counts={}; let voters=0; Object.values(shared.members).forEach(m=>{ if(m.round2!=null){ voters++; counts[m.round2]=(counts[m.round2]||0)+1; } }); return {counts,voters}; }
 function availabilityOverlap(){
   const set=Object.values(shared.members).filter(m=>m.availability&&m.availability.length);
-  const n=set.length||1; const tally={}; WEEKENDS.forEach(w=>tally[w.id]=0);
+  const n=set.length||1; const tally={}; MONTHS.forEach(m=>tally[m.id]=0);
   set.forEach(m=>m.availability.forEach(id=>{ if(tally[id]!=null)tally[id]++; }));
   const best=Math.max(0,...Object.values(tally));
-  const dates=WEEKENDS.filter(w=>tally[w.id]===best&&best>0).map(w=>w.label);
+  const dates=MONTHS.filter(m=>tally[m.id]===best&&best>0).map(m=>m.label);
   return {dates,best,n};
 }
 async function enterWinner(){
@@ -593,26 +691,29 @@ async function enterWinner(){
   if(voters>0) winnerId=Object.keys(counts).map(Number).sort((a,b)=>counts[b]-counts[a])[0];
   const d=destById(winnerId);
   document.getElementById("winScene").innerHTML=scene(d);
+  const wp=document.getElementById("winPhoto"); wp.classList.remove("in");
+  wp.onload=()=>wp.classList.add("in"); wp.onerror=()=>wp.remove(); wp.src=d.img;
   document.getElementById("winName").textContent=`${d.emoji} ${d.name}`;
   document.getElementById("winMeta").innerHTML=`
     <div class="avail-box">
       <div class="lab">${d.campsite}</div>
       <div class="dates" style="color:var(--text);font-size:15px;">£${d.totalPP}pp · ${d.distance} mi · ${"★".repeat(d.rating)}</div>
       <div style="color:var(--muted);font-size:13px;margin-top:6px;">${d.vibe}</div>
-      <div class="linkrow" style="margin-top:12px;">
-        <a href="${d.mapsUrl}" target="_blank" rel="noopener noreferrer">📍 Maps</a>
+      <div class="mapwrap" style="margin-top:12px;"><iframe loading="lazy" referrerpolicy="no-referrer" src="${mapEmbed(d.mapsQ)}" title="winner map"></iframe></div>
+      <div class="linkrow" style="margin-top:10px;">
+        <a href="${mapsLink(d.mapsQ)}" target="_blank" rel="noopener noreferrer">📍 Directions</a>
         <a href="${d.bookingUrl}" target="_blank" rel="noopener noreferrer">🔗 Book it</a>
       </div>
     </div>`;
   const {dates,best,n}=availabilityOverlap();
   const datesEl=document.getElementById("winDates"), labEl=document.getElementById("winDatesLab");
-  if(dates.length){ datesEl.textContent=dates.join(" · "); labEl.textContent = best>=n ? "Best dates — everyone free" : `Best dates — ${best}/${n} free`; }
+  if(dates.length){ datesEl.textContent=dates.join(" · "); labEl.textContent = best>=n ? "Best month — everyone free" : `Best month — ${best}/${n} free`; }
   else { datesEl.textContent="Set availability to see overlap"; }
   document.getElementById("shareBtn").onclick=()=>{
     const dateStr=dates.length?dates[0]:"TBC";
-    const msg=`🏕️ KAMPING WINNER: ${d.name}! We're all free ${dateStr}. Who's booking? 🔥\n${shareURL()}`;
+    const msg=`🏕️ KAMPING WINNER: ${d.name}! Most of us are free in ${dateStr}. Who's booking? 🔥\n${shareURL()}`;
     if(navigator.share){ navigator.share({title:"KAMPING winner",text:msg}).catch(()=>{}); }
-    else window.open(`https://wa.me/?text=${encodeURIComponent(msg)}`,"_blank");
+    else { copy(shareURL()); window.open(`https://wa.me/?text=${encodeURIComponent(msg)}`,"_blank"); }
   };
   document.getElementById("restartBtn").onclick=()=>show("s2");
   burstConfetti();
@@ -631,20 +732,24 @@ function bindHoldToUnlock(el){
 function burstConfetti(){
   const c=document.getElementById("confetti"), ctx=c.getContext("2d");
   c.width=innerWidth; c.height=innerHeight;
-  const cols=["#ff8a3d","#6fcf8f","#ffcf5c","#54b9ab","#f3efe4"];
+  const cols=["#ff9e42","#3ee07f","#ffcf5c","#54c8c0","#e2f3e6"];
   const P=Array.from({length:120},()=>({x:Math.random()*c.width,y:-20-Math.random()*c.height,r:4+Math.random()*5,vy:2+Math.random()*4,vx:-2+Math.random()*4,col:cols[Math.floor(Math.random()*cols.length)]}));
   let f=0;(function loop(){ ctx.clearRect(0,0,c.width,c.height); f++; P.forEach(p=>{p.y+=p.vy;p.x+=p.vx;p.vy+=0.04;ctx.fillStyle=p.col;ctx.fillRect(p.x,p.y,p.r,p.r);}); if(f<170)requestAnimationFrame(loop); else ctx.clearRect(0,0,c.width,c.height); })();
 }
 
 /* ---------- BOOT ---------- */
-(function boot(){
+(async function boot(){
   const g=new URL(location.href).searchParams.get("g");
-  if(g && /^[A-Za-z0-9]+$/.test(g)){ BLOB_ID=g; } // joining an existing camp
+  if(g && /^[A-Za-z0-9-]+$/.test(g)){ BLOB_ID=g; }     // joining an existing camp
   else if(!localStorage.getItem("kamping_local")){ localStorage.setItem("kamping_local", Math.random().toString(36).slice(2,8)); }
   loadLocal();
-  setGroupPills(); setBanner(); initS1();
+  setGroupPills(); initS1();
   document.getElementById("share5").onclick=inviteShare;
   if(me.name) document.getElementById("nameInput").value=me.name;
+  // Boot connectivity probe: if joining a camp, pull it; else just confirm reachability.
+  if(BLOB_ID){ await pull(); mergeMe(); }
+  else { try{ const r=await fetch(API_BASE+"/nonexistent",{cache:"no-store"}); ONLINE = r.status>0; }catch(e){ ONLINE=false; } }
+  setBanner();
 })();
 </script>
 </body>
