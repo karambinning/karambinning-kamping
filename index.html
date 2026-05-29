@@ -1,5 +1,11 @@
 <!DOCTYPE html>
-<!-- HB-56 P-6 · KAMPING · KAM LIFESTYLE module · camping trip planner + voting
+<!-- HB-56 P-7 · KAMPING · KAM LIFESTYLE module · camping trip planner + voting
+     P-7 change (Boss feedback — syncing must "just work"): one fixed shared camp is
+       baked in (DEFAULT_ROOM), so the plain site URL IS the shared camp — everyone
+       who opens the link lands in the same camp and all votes/availability sync with
+       zero setup. No more "first person creates a link" step. A "Share invite" button
+       is on the first screen so you can send it immediately. (?g=ID still supported
+       to spin up a separate private camp if ever needed.)
      P-6 change (Boss feedback): availability calendar limited to August 2026 only.
      P-5 changes (Boss feedback): in voting, tap any camp to open a detail sheet
        (full photos + info) so you remember what you're voting for, and pick from
@@ -246,6 +252,7 @@
     <div style="width:100%;max-width:420px;margin-top:34px;">
       <input type="text" id="nameInput" placeholder="What's your name?" autocomplete="given-name" maxlength="24" />
       <button class="btn" id="enterBtn" style="margin-top:16px;">ENTER THE CAMP →</button>
+      <button class="btn ghost" id="share1">📲 Share invite with friends</button>
       <div class="status" id="modeBanner" style="justify-content:center;margin-top:18px;"><span class="dot" id="modeDot"></span><span id="modeText">connecting…</span></div>
     </div>
   </div>
@@ -380,6 +387,9 @@
    ============================================================ */
 
 const API_BASE = "https://jsonblob.com/api/jsonBlob";
+/* ONE shared camp for the whole friend group: the plain site URL joins everyone here.
+   (Override with ?g=ID to run a separate private camp.) */
+const DEFAULT_ROOM = "019e74c1-9941-7dc5-92a1-87dd031debc2";
 const PARTY_SIZE = 7;
 const POLL_MS = 8000;
 
@@ -479,7 +489,7 @@ const me = { name: localStorage.getItem("kamping_name") || "", availability:[], 
 let shared = { round2Unlocked:false, members:{} };
 
 function shortCode(){ return BLOB_ID ? BLOB_ID.slice(-5).toUpperCase() : "SOLO"; }
-function shareURL(){ return location.origin + location.pathname + (BLOB_ID ? "?g="+BLOB_ID : ""); }
+function shareURL(){ return location.origin + location.pathname + (BLOB_ID && BLOB_ID!==DEFAULT_ROOM ? "?g="+BLOB_ID : ""); }
 function memberSnapshot(){ return { availability:[...me.availability], round1:[...me.round1], round2:me.round2 }; }
 function mergeMe(){ if(me.name) shared.members[me.name] = memberSnapshot(); }
 
@@ -564,9 +574,7 @@ function show(id){
 function setGroupPills(){ ["gp2","gp3","gp4","gp5","gp6"].forEach(i=>{const el=document.getElementById(i);if(el)el.textContent=shortCode();}); }
 function toast(msg){ const t=document.getElementById("toast"); t.textContent=msg; t.classList.add("show"); setTimeout(()=>t.classList.remove("show"),2200); }
 function setBanner(){
-  const solo = !BLOB_ID;
-  const txt = solo ? "solo — share to sync" : (ONLINE ? "live · synced" : "reconnecting…");
-  document.querySelectorAll(".dot").forEach(d=>d.classList.toggle("off", !ONLINE && !solo));
+  document.querySelectorAll(".dot").forEach(d=>d.classList.toggle("off", !ONLINE));
   ["net2","net3","net4","net5","net6"].forEach(i=>{const e=document.getElementById(i);if(e)e.textContent=ONLINE?"live":"sync…";});
   const t=document.getElementById("modeText"), dot=document.getElementById("modeDot");
   if(t) t.textContent = ONLINE ? "connected · votes sync across the camp" : "offline — saved on this phone, will reconnect";
@@ -937,16 +945,15 @@ function burstConfetti(){
 /* ---------- BOOT ---------- */
 (async function boot(){
   const g=new URL(location.href).searchParams.get("g");
-  if(g && /^[A-Za-z0-9-]+$/.test(g)){ BLOB_ID=g; }     // joining an existing camp
-  else if(!localStorage.getItem("kamping_local")){ localStorage.setItem("kamping_local", Math.random().toString(36).slice(2,8)); }
+  // Default to the one shared camp so the plain URL just works; ?g=ID overrides.
+  BLOB_ID = (g && /^[A-Za-z0-9-]+$/.test(g)) ? g : DEFAULT_ROOM;
   loadLocal();
   setGroupPills(); initS1();
   const sh=document.getElementById("sheet"); sh.onclick=e=>{ if(e.target===sh) closeSheet(); };
   document.getElementById("share5").onclick=inviteShare;
+  document.getElementById("share1").onclick=inviteShare;
   if(me.name) document.getElementById("nameInput").value=me.name;
-  // Boot connectivity probe: if joining a camp, pull it; else just confirm reachability.
-  if(BLOB_ID){ await pull(); mergeMe(); }
-  else { try{ const r=await fetch(API_BASE+"/nonexistent",{cache:"no-store"}); ONLINE = r.status>0; }catch(e){ ONLINE=false; } }
+  await pull(); mergeMe();   // load the shared camp's current state
   setBanner();
 })();
 </script>
