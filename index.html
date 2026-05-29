@@ -1,5 +1,8 @@
 <!DOCTYPE html>
-<!-- HB-56 P-4 · KAMPING · KAM LIFESTYLE module · camping trip planner + voting
+<!-- HB-56 P-5 · KAMPING · KAM LIFESTYLE module · camping trip planner + voting
+     P-5 changes (Boss feedback): in voting, tap any camp to open a detail sheet
+       (full photos + info) so you remember what you're voting for, and pick from
+       there; plus a "Compare" view to see two camps side by side.
      P-4 changes (Boss feedback): clickable Jun/Jul/Aug 2026 calendars (pick specific
        days; group overlap → best dates); richer camp cards — 2-3 verified photos each
        with tappable thumbnail strip, plus info grid (region/drive/terrain/rating) and
@@ -168,6 +171,42 @@
   .vcard .check{display:none;position:absolute;top:6px;right:6px;width:25px;height:25px;border-radius:50%;background:var(--green);color:#04140a;align-items:center;justify-content:center;font-weight:900;font-size:14px;}
   .shake{animation:shake .4s;}
   @keyframes shake{0%,100%{transform:translateX(0);}20%,60%{transform:translateX(-7px);}40%,80%{transform:translateX(7px);}}
+  .vthumb .vinfo{position:absolute;top:6px;left:6px;width:22px;height:22px;border-radius:50%;background:rgba(4,16,10,.72);border:1px solid var(--line2);color:var(--green);font-size:12px;display:flex;align-items:center;justify-content:center;}
+  /* vote toolbar (info hint + compare) */
+  .votebar{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:12px;}
+  .vbhint{font-family:var(--mono);font-size:11px;color:var(--muted);}
+  .cmpbtn{background:var(--panel);border:1px solid var(--line2);color:var(--green);font-family:var(--mono);font-size:12px;font-weight:700;padding:9px 13px;border-radius:10px;cursor:pointer;}
+  /* bottom sheet (detail + compare) */
+  .sheet{position:fixed;inset:0;z-index:70;background:rgba(2,8,5,.78);backdrop-filter:blur(3px);display:none;align-items:flex-end;justify-content:center;}
+  .sheet.show{display:flex;animation:fade .2s ease;}
+  .sheet-panel{background:var(--bg2);border:1px solid var(--line2);border-radius:18px 18px 0 0;width:100%;max-width:520px;max-height:92dvh;overflow-y:auto;-webkit-overflow-scrolling:touch;position:relative;animation:slideup .26s ease;}
+  @keyframes slideup{from{transform:translateY(40px);opacity:.6;}to{transform:none;opacity:1;}}
+  .sheet-close{position:absolute;top:10px;right:10px;z-index:3;width:34px;height:34px;border-radius:50%;background:rgba(4,16,10,.72);border:1px solid var(--line2);color:var(--text);font-size:15px;cursor:pointer;}
+  .sheet-hero{position:relative;height:196px;overflow:hidden;border-radius:18px 18px 0 0;background:var(--bg2);}
+  .sheet-hero .scene,.sheet-hero .scene svg{position:absolute;inset:0;width:100%;height:100%;}
+  .sheet-hero .photo{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;opacity:0;transition:opacity .4s;}
+  .sheet-hero .photo.in{opacity:1;}
+  .sheet-hero .rtag{position:absolute;right:12px;top:12px;font-family:var(--mono);font-size:11px;color:var(--gold);background:rgba(4,16,10,.66);padding:4px 9px;border-radius:8px;border:1px solid var(--line);}
+  .sheet-body{padding:16px calc(16px + env(safe-area-inset-right)) calc(20px + env(safe-area-inset-bottom)) 16px;}
+  .sheet-body h2{margin:0 0 4px;}
+  .sheet-body .cname{color:var(--green);font-family:var(--mono);font-size:12px;margin-bottom:12px;}
+  .pickbtn{margin-top:14px;}
+  /* compare */
+  .cmp-pick{display:flex;align-items:center;gap:8px;margin-bottom:14px;}
+  .cmp-pick select{flex:1;min-height:44px;background:var(--panel);color:var(--text);border:1.5px solid var(--line2);border-radius:10px;font-family:var(--mono);font-size:13px;padding:0 8px;}
+  .cmp-vs{font-family:var(--mono);color:var(--ember);font-size:12px;}
+  .cmp-cols{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
+  .cmp-col{background:var(--panel);border:1px solid var(--line2);border-radius:12px;padding:8px;}
+  .cmp-hero{position:relative;height:84px;border-radius:8px;overflow:hidden;margin-bottom:8px;}
+  .cmp-hero .scene,.cmp-hero .scene svg,.cmp-hero .photo{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;}
+  .cmp-hero .photo{opacity:0;transition:opacity .4s;}.cmp-hero .photo.in{opacity:1;}
+  .cmp-name{font-family:var(--mono);font-weight:700;font-size:13px;margin-bottom:6px;min-height:34px;}
+  .cmp-row{display:flex;justify-content:space-between;gap:6px;font-size:11px;color:var(--muted);padding:5px 0;border-top:1px solid var(--line);}
+  .cmp-row b{color:var(--text);text-align:right;}
+  .cmp-row.hl b{color:var(--ember);}
+  .cmp-tags{display:flex;flex-wrap:wrap;gap:4px;margin-top:8px;}
+  .cmp-tags .chip{font-size:10px;padding:3px 7px;}
+  .cmp-hi{font-family:var(--mono);font-size:10px;color:var(--ember);margin-top:8px;line-height:1.3;}
   /* leaderboard */
   .lb-row{margin-bottom:12px;}
   .lb-top{display:flex;justify-content:space-between;font-size:14px;font-weight:600;margin-bottom:5px;}
@@ -256,7 +295,8 @@
   <div class="scr-body">
     <p class="eyebrow">Step 3 / 3 · Round 1</p>
     <h1>Pick your TOP 3 🗳️</h1>
-    <p class="sub">Tap 3 camps you'd be happiest with.</p>
+    <p class="sub">Tap any camp to see its full info, then add it to your top 3.</p>
+    <div class="votebar"><span class="vbhint">ⓘ Tap a camp for details</span><button class="cmpbtn" id="cmpR1">⚖️ Compare two</button></div>
     <div class="vgrid" id="r1grid"></div>
   </div>
   <div class="scr-foot"><button class="btn" id="submitR1" disabled>SUBMIT MY TOP 3</button></div>
@@ -290,7 +330,8 @@
   </div>
   <div class="scr-body">
     <h1>Final vote: pick 1 🏆</h1>
-    <p class="sub">The top 3 from Round 1. Choose the one.</p>
+    <p class="sub">The top 3 from Round 1. Tap for info, then lock in your winner.</p>
+    <div class="votebar"><span class="vbhint">ⓘ Tap a camp for details</span><button class="cmpbtn" id="cmpR2">⚖️ Compare</button></div>
     <div class="vgrid" id="r2grid"></div>
   </div>
   <div class="scr-foot"><button class="btn" id="submitR2" disabled>LOCK IN MY WINNER</button></div>
@@ -316,6 +357,7 @@
   </div>
 </section>
 
+<div class="sheet" id="sheet"><div class="sheet-panel" id="sheetPanel"></div></div>
 <canvas id="confetti"></canvas>
 <div class="toast" id="toast"></div>
 
@@ -660,26 +702,120 @@ function buildCarousel(){
 }
 
 /* ---------- SCREEN 4 — ROUND 1 ---------- */
-function voteCardHTML(d){ return `<div class="vthumb"><div class="scene">${scene(d)}</div>${photoTag(d.imgs[0],d.name)}</div><div class="vn">${d.emoji} ${d.name}</div><div class="check">✓</div>`; }
+function voteCardHTML(d){ return `<div class="vthumb"><div class="scene">${scene(d)}</div>${photoTag(d.imgs[0],d.name)}<span class="vinfo">ⓘ</span></div><div class="vn">${d.emoji} ${d.name}</div><div class="check">✓</div>`; }
+
+/* ---------- DETAIL SHEET + COMPARE (voting screens) ---------- */
+function openSheet(html){ const s=document.getElementById("sheet"),p=document.getElementById("sheetPanel"); p.innerHTML=html; p.scrollTop=0; s.classList.add("show"); }
+function closeSheet(){ document.getElementById("sheet").classList.remove("show"); }
+function thumbStripSheet(d){
+  if(!d.imgs || d.imgs.length<2) return "";
+  return `<div class="thumbs">${d.imgs.map((u,i)=>`<img class="thumb${i===0?' on':''}" src="${u}" loading="lazy" decoding="async" onerror="this.remove()" onclick="selPhotoSheet(this,'${u}')"/>`).join("")}</div>`;
+}
+function selPhotoSheet(el,u){
+  const h=document.querySelector("#sheetPanel .sheet-hero .photo");
+  if(h){ h.classList.remove("in"); h.src=u; }
+  el.parentNode.querySelectorAll(".thumb").forEach(t=>t.classList.remove("on")); el.classList.add("on");
+}
+/* tap a vote card → full info so you remember what you're voting for; pick from here too */
+function openDetail(id,round){
+  const d=destById(id);
+  const sel = round===1 ? me.round1.includes(id) : me.round2===id;
+  const pickLabel = round===1
+    ? (sel ? "✓ In your top 3 — tap to remove" : "➕ Add to my top 3")
+    : (sel ? "✓ Your winner pick" : "🏆 Pick this as winner");
+  openSheet(`
+    <button class="sheet-close" onclick="closeSheet()" aria-label="close">✕</button>
+    <div class="sheet-hero"><div class="scene">${scene(d)}</div>${photoTag(d.imgs[0],d.name)}<span class="rtag">${"★".repeat(d.rating)}</span></div>
+    ${thumbStripSheet(d)}
+    <div class="sheet-body">
+      <h2>${d.emoji} ${d.name}</h2>
+      <div class="cname">▸ ${d.campsite}</div>
+      <div class="infogrid">
+        <div class="info"><span class="il">📍 Region</span><span class="iv">${d.region}</span></div>
+        <div class="info"><span class="il">🚗 Drive</span><span class="iv">${d.distance} mi · ~${driveTime(d.distance)}</span></div>
+        <div class="info"><span class="il">⛰️ Terrain</span><span class="iv">${d.terrain}</span></div>
+        <div class="info"><span class="il">⭐ Rating</span><span class="iv">${d.rating}/5</span></div>
+      </div>
+      <div class="costrow">
+        <div class="cost"><div class="v">£${d.totalPP}</div><div class="l">Total pp</div></div>
+        <div class="cost"><div class="v">£${d.petrolPP}</div><div class="l">⛽ Petrol pp</div></div>
+        <div class="cost"><div class="v">£${d.sitePerNight}</div><div class="l">🏕️ Site/night</div></div>
+      </div>
+      <p class="vibe">${d.vibe}</p>
+      <div class="highlight">✦ ${d.highlight}</div>
+      <p class="seclab">🏕️ On site</p><div class="chips">${d.facilities.map(f=>`<span class="chip">${f}</span>`).join("")}</div>
+      <p class="seclab">🥾 Things to do</p><div class="chips">${d.activities.map(a=>`<span class="chip act">${a}</span>`).join("")}</div>
+      <div class="linkrow">
+        <a href="${mapsLink(d.mapsQ)}" target="_blank" rel="noopener noreferrer">📍 Map</a>
+        <a href="${d.bookingUrl}" target="_blank" rel="noopener noreferrer">🔗 Book</a>
+      </div>
+      <button class="btn ${sel?'moss':''} pickbtn" id="pickBtn">${pickLabel}</button>
+    </div>`);
+  document.getElementById("pickBtn").onclick=()=>{
+    if(round===1){
+      const i=me.round1.indexOf(id);
+      if(i>=0){ me.round1.splice(i,1); }
+      else if(me.round1.length>=3){ toast("Pick 3 only!"); return; }
+      else { me.round1.push(id); }
+      refreshR1();
+    } else { me.round2=id; refreshR2(); }
+    openDetail(id,round);   // re-render so the button reflects the new state
+  };
+}
+/* compare two camps side by side */
+function cmpColHTML(d){
+  return `<div class="cmp-col">
+    <div class="cmp-hero"><div class="scene">${scene(d)}</div>${photoTag(d.imgs[0],d.name)}</div>
+    <div class="cmp-name">${d.emoji} ${d.name}</div>
+    <div class="cmp-row"><span>📍 Region</span><b>${d.region}</b></div>
+    <div class="cmp-row"><span>🚗 Drive</span><b>${d.distance} mi · ~${driveTime(d.distance)}</b></div>
+    <div class="cmp-row hl"><span>💷 Total pp</span><b>£${d.totalPP}</b></div>
+    <div class="cmp-row"><span>⛽ Petrol pp</span><b>£${d.petrolPP}</b></div>
+    <div class="cmp-row"><span>🏕️ Site/night</span><b>£${d.sitePerNight}</b></div>
+    <div class="cmp-row"><span>⭐ Rating</span><b>${d.rating}/5</b></div>
+    <div class="cmp-row"><span>⛰️ Terrain</span><b>${d.terrain}</b></div>
+    <div class="cmp-tags">${d.activities.slice(0,4).map(a=>`<span class="chip act">${a}</span>`).join("")}</div>
+    <div class="cmp-hi">✦ ${d.highlight}</div>
+  </div>`;
+}
+function renderCompare(){
+  const a=Number(document.getElementById("cmpA").value), b=Number(document.getElementById("cmpB").value);
+  document.getElementById("cmpCols").innerHTML=cmpColHTML(destById(a))+cmpColHTML(destById(b));
+}
+function openCompare(ids){
+  const opts=ids.map(id=>{const d=destById(id);return `<option value="${id}">${d.emoji} ${d.name}</option>`;}).join("");
+  const a=ids[0], b=ids[1]||ids[0];
+  openSheet(`
+    <button class="sheet-close" onclick="closeSheet()" aria-label="close">✕</button>
+    <div class="sheet-body">
+      <h2>⚖️ Compare camps</h2>
+      <div class="cmp-pick"><select id="cmpA">${opts}</select><span class="cmp-vs">vs</span><select id="cmpB">${opts}</select></div>
+      <div class="cmp-cols" id="cmpCols"></div>
+    </div>`);
+  document.getElementById("cmpA").value=a; document.getElementById("cmpB").value=b;
+  document.getElementById("cmpA").onchange=renderCompare; document.getElementById("cmpB").onchange=renderCompare;
+  renderCompare();
+}
 function buildR1(){
   const grid=document.getElementById("r1grid"); grid.innerHTML="";
   DESTINATIONS.forEach(d=>{
     const c=document.createElement("div");
     c.className="vcard"+(me.round1.includes(d.id)?" sel":"");
+    c.dataset.id=d.id;
     c.innerHTML=voteCardHTML(d);
-    c.onclick=()=>{
-      const i=me.round1.indexOf(d.id);
-      if(i>=0){ me.round1.splice(i,1); c.classList.remove("sel"); }
-      else if(me.round1.length>=3){ c.classList.add("shake"); setTimeout(()=>c.classList.remove("shake"),400); toast("Pick 3 only!"); }
-      else { me.round1.push(d.id); c.classList.add("sel"); }
-      document.getElementById("submitR1").disabled = me.round1.length!==3;
-    };
+    c.onclick=()=>openDetail(d.id,1);
     grid.appendChild(c);
   });
+  document.getElementById("cmpR1").onclick=()=>openCompare(DESTINATIONS.map(d=>d.id));
+  refreshR1();
+  const btn=document.getElementById("submitR1");
+  btn.onclick=async()=>{ if(me.round1.length!==3) return; btn.textContent="Saving…"; await sync(); refreshR1(); show("s5"); };
+}
+function refreshR1(){
+  document.querySelectorAll("#r1grid .vcard").forEach(c=>c.classList.toggle("sel", me.round1.includes(Number(c.dataset.id))));
   const btn=document.getElementById("submitR1");
   btn.disabled = me.round1.length!==3;
   btn.textContent = me.round1.length ? "UPDATE MY TOP 3" : "SUBMIT MY TOP 3";
-  btn.onclick=async()=>{ if(me.round1.length!==3) return; btn.textContent="Saving…"; await sync(); btn.textContent="UPDATE MY TOP 3"; show("s5"); };
 }
 
 /* ---------- SCREEN 5 — RESULTS ---------- */
@@ -714,17 +850,24 @@ function renderResults(){
 function enterRound2(){ buildR2(); }
 function buildR2(){
   const grid=document.getElementById("r2grid"); grid.innerHTML="";
-  topThree().forEach(id=>{
+  const t3=topThree();
+  t3.forEach(id=>{
     const d=destById(id);
     const c=document.createElement("div");
     c.className="vcard"+(me.round2===id?" sel":"");
+    c.dataset.id=id;
     c.innerHTML=voteCardHTML(d);
-    c.onclick=()=>{ me.round2=id; grid.querySelectorAll(".vcard").forEach(x=>x.classList.remove("sel")); c.classList.add("sel"); document.getElementById("submitR2").disabled=false; };
+    c.onclick=()=>openDetail(id,2);
     grid.appendChild(c);
   });
+  document.getElementById("cmpR2").onclick=()=>openCompare(t3);
+  refreshR2();
   const btn=document.getElementById("submitR2");
-  btn.disabled = me.round2==null;
   btn.onclick=async()=>{ if(me.round2==null)return; btn.textContent="Saving…"; await sync(); btn.textContent="LOCK IN MY WINNER"; await enterWinner(); show("s7"); };
+}
+function refreshR2(){
+  document.querySelectorAll("#r2grid .vcard").forEach(c=>c.classList.toggle("sel", Number(c.dataset.id)===me.round2));
+  document.getElementById("submitR2").disabled = me.round2==null;
 }
 
 /* ---------- SCREEN 7 — WINNER ---------- */
@@ -797,6 +940,7 @@ function burstConfetti(){
   else if(!localStorage.getItem("kamping_local")){ localStorage.setItem("kamping_local", Math.random().toString(36).slice(2,8)); }
   loadLocal();
   setGroupPills(); initS1();
+  const sh=document.getElementById("sheet"); sh.onclick=e=>{ if(e.target===sh) closeSheet(); };
   document.getElementById("share5").onclick=inviteShare;
   if(me.name) document.getElementById("nameInput").value=me.name;
   // Boot connectivity probe: if joining a camp, pull it; else just confirm reachability.
