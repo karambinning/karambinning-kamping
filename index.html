@@ -98,16 +98,27 @@
   .dot.off{background:var(--ember);box-shadow:0 0 8px var(--ember);animation:pulse 1.4s infinite;}
   @keyframes pulse{0%,100%{opacity:1;}50%{opacity:.35;}}
   .icon-btn{width:36px;height:36px;border-radius:9px;background:var(--panel);border:1px solid var(--line2);color:var(--ember);font-size:15px;cursor:pointer;display:flex;align-items:center;justify-content:center;}
-  /* availability months */
-  .months{display:flex;flex-direction:column;gap:12px;margin-top:6px;}
-  .month{display:flex;align-items:center;gap:14px;min-height:74px;border:1.5px solid var(--line2);background:var(--panel);border-radius:var(--radius);
-    padding:14px 16px;cursor:pointer;transition:.15s;position:relative;overflow:hidden;}
-  .month .memoji{font-size:30px;line-height:1;}
-  .month .mname{font-family:var(--mono);font-size:19px;font-weight:700;}
-  .month .mhint{font-size:12px;color:var(--muted);margin-top:2px;}
-  .month .mtick{margin-left:auto;width:30px;height:30px;border-radius:50%;border:2px solid var(--line2);display:flex;align-items:center;justify-content:center;color:transparent;font-weight:900;font-size:16px;transition:.15s;}
-  .month.on{border-color:var(--green);background:linear-gradient(135deg,rgba(62,224,127,.14),var(--panel));box-shadow:0 4px 18px var(--green-glow);}
-  .month.on .mtick{background:var(--green);border-color:var(--green);color:#04140a;}
+  /* availability calendars */
+  .availcount{font-family:var(--mono);font-size:13px;color:var(--green);background:var(--panel);border:1px solid var(--line2);border-radius:10px;padding:9px 12px;text-align:center;margin-bottom:14px;}
+  .cal{background:var(--panel);border:1px solid var(--line2);border-radius:var(--radius);padding:12px 12px 14px;margin-bottom:14px;}
+  .cal h3{font-family:var(--mono);font-size:15px;font-weight:700;margin:0 0 10px;color:var(--green);letter-spacing:.5px;}
+  .cal-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:5px;}
+  .cal-dow{font-family:var(--mono);font-size:10px;color:var(--muted);text-align:center;padding-bottom:2px;}
+  .day{aspect-ratio:1/1;display:flex;align-items:center;justify-content:center;border-radius:9px;font-family:var(--mono);font-size:13px;
+    border:1px solid var(--line);background:var(--panel2);color:var(--text);cursor:pointer;transition:.12s;user-select:none;}
+  .day.blank{border:none;background:transparent;cursor:default;}
+  .day.we{color:var(--ember);}
+  .day:active{transform:scale(.9);}
+  .day.on{background:linear-gradient(135deg,var(--green),var(--green-dim));color:#04140a;border-color:var(--green);font-weight:700;box-shadow:0 2px 10px var(--green-glow);}
+  /* photo thumbnail strip + info grid + section labels */
+  .thumbs{display:flex;gap:6px;padding:8px 10px 0;overflow-x:auto;-webkit-overflow-scrolling:touch;background:var(--panel);}
+  .thumb{flex:0 0 auto;width:62px;height:44px;object-fit:cover;border-radius:8px;border:2px solid transparent;opacity:.6;cursor:pointer;transition:.12s;}
+  .thumb.on{opacity:1;border-color:var(--green);}
+  .infogrid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px;}
+  .info{background:var(--panel2);border:1px solid var(--line);border-radius:10px;padding:8px 10px;}
+  .info .il{display:block;font-family:var(--mono);font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;}
+  .info .iv{display:block;font-size:13px;font-weight:600;margin-top:2px;}
+  .seclab{font-family:var(--mono);font-size:11px;color:var(--green-dim);text-transform:uppercase;letter-spacing:1px;margin:4px 0 7px;}
   /* destination cards */
   .swiper{width:100%;padding-bottom:4px;}
   .dcard{background:var(--panel);border-radius:18px;overflow:hidden;border:1px solid var(--line2);box-shadow:0 12px 30px rgba(0,0,0,.45);}
@@ -204,9 +215,10 @@
   </div>
   <div class="scr-body">
     <p class="eyebrow">Step 1 / 3 · Availability</p>
-    <h1>When could you go?</h1>
-    <p class="sub">Tap every summer month you're free to camp. Multiple is fine.</p>
-    <div class="months" id="availGrid"></div>
+    <h1>Which days are you free?</h1>
+    <p class="sub">Tap every day across June–August 2026 you could camp. We'll find the dates that work for the most people.</p>
+    <div class="availcount" id="availCount">Tap the days you're free</div>
+    <div id="availGrid"></div>
   </div>
   <div class="scr-foot"><button class="btn" id="availNext">NEXT · EXPLORE CAMPS →</button></div>
 </section>
@@ -326,29 +338,29 @@ const POLL_MS = 8000;
 
 /* ---------- DESTINATIONS (data from brief; photos verified Wikimedia 200; scene = generated fallback) ---------- */
 const DESTINATIONS = [
-  {id:1,name:"Peak District",campsite:"Fieldhead Campsite, Edale",distance:140,petrolPP:14,sitePerNight:13,totalPP:40,rating:4,vibe:"Classic hiking trip. Pennine Way trailhead. Mam Tor views.",facilities:["🚿 Showers","🛒 Shop & Cafe","🍺 Pub 2 min","🐶 Dog Friendly"],activities:["Kinder Scout","Mam Tor","Caves","Stanage Climbing"],bookingUrl:"https://www.campsites.co.uk",mapsQ:"Fieldhead Campsite Edale",emoji:"🏔️",highlight:"Pennine Way starts here",scene:"mountain",img:"https://upload.wikimedia.org/wikipedia/commons/f/f0/Mam_Tor.jpg"},
-  {id:2,name:"Lake District — Langdale",campsite:"Great Langdale Campsite (National Trust)",distance:280,petrolPP:28,sitePerNight:14,totalPP:56,rating:5,vibe:"Campsite of the Year 2025. Pub opposite the gate. Epic scenery.",facilities:["🛒 Shop + Croissants","🚿 Showers","🍺 Pub 2 min","🐶 Dog Friendly","🏕️ Pods"],activities:["Langdale Pikes","Scafell Pike","Blea Tarn","Waterfalls","E-Bikes"],bookingUrl:"https://www.nationaltrust.org.uk/holidays",mapsQ:"Great Langdale Campsite",emoji:"⛰️",highlight:"🏆 Campsite of the Year 2025",scene:"mountain",img:"https://upload.wikimedia.org/wikipedia/commons/e/e1/Great_Langdale_Meets_Windermere.jpg"},
-  {id:3,name:"Lake District — Windermere",campsite:"Low Wray Campsite (National Trust)",distance:280,petrolPP:28,sitePerNight:18,totalPP:64,rating:5,vibe:"Right on Lake Windermere. Wild swimming, paddleboards, pizza.",facilities:["🚿 Modern Showers","🛒 Shop","🍕 Wood-Fired Pizza","🛶 Kayaks","🐶 Dog Friendly"],activities:["Windermere Swim","Paddleboarding","Wray Castle","Cycling","Ambleside"],bookingUrl:"https://www.nationaltrust.org.uk/holidays",mapsQ:"Low Wray Campsite Windermere",emoji:"🌊",highlight:"Wild swimming on Windermere",scene:"lake",img:"https://upload.wikimedia.org/wikipedia/commons/2/20/Windermere_Lake_District_from_hill.JPG"},
-  {id:4,name:"Pembrokeshire",campsite:"Lleithyr Farm, St Davids",distance:230,petrolPP:23,sitePerNight:17,totalPP:57,rating:5,vibe:"Best beach trip in Wales. Dolphins, coasteering, Whitesands Bay.",facilities:["🚿 Showers","🛒 Farm Shop","🥾 Coastal Path","🐶 Dog Friendly","🔥 Campfires"],activities:["Whitesands Beach","Coasteering","Surfing","Dolphins","St Davids"],bookingUrl:"https://www.campsites.co.uk",mapsQ:"Lleithyr Farm St Davids",emoji:"🏖️",highlight:"186 miles of coastline",scene:"coast",img:"https://upload.wikimedia.org/wikipedia/commons/9/98/Tenby_Harbour_-_geograph.org.uk_-_3983172.jpg"},
-  {id:5,name:"New Forest",campsite:"Holmsley Campsite",distance:90,petrolPP:9,sitePerNight:20,totalPP:49,rating:4,vibe:"Closest option. Forest ponies, cycling trails, campfires.",facilities:["🚿 Hot Showers","🛒 Shop","🔥 Campfires","🚲 Cycle Trails","🐶 Dog Friendly"],activities:["Forest Cycling","Wild Ponies","Lyndhurst","Bournemouth","Beaulieu"],bookingUrl:"https://www.forestholidays.co.uk",mapsQ:"Holmsley Campsite New Forest",emoji:"🌿",highlight:"Cheapest petrol — only £9pp",scene:"forest",img:"https://upload.wikimedia.org/wikipedia/commons/3/31/Beech_trees_in_Mallard_Wood%2C_New_Forest_-_geograph.org.uk_-_779513.jpg"},
-  {id:6,name:"Loch Lomond",campsite:"Cashel Campsite, Rowardennan",distance:380,petrolPP:38,sitePerNight:12,totalPP:62,rating:5,vibe:"Scotland. Ben Lomond. Lochside wild swimming. The big one.",facilities:["🚿 Showers","🚻 Toilets","🏕️ Lochside Pitches","🐶 Dog Friendly"],activities:["Ben Lomond","West Highland Way","Loch Swim","Rob Roy","Stirling"],bookingUrl:"https://www.lochlomond.net",mapsQ:"Cashel Campsite Loch Lomond",emoji:"🏴",highlight:"Wild camping is LEGAL in Scotland",scene:"lake",img:"https://upload.wikimedia.org/wikipedia/commons/a/a8/Loch_Lomond_2013_2.JPG"},
-  {id:7,name:"Yorkshire Dales",campsite:"Horton in Ribblesdale",distance:210,petrolPP:21,sitePerNight:13,totalPP:47,rating:4,vibe:"Three Peaks country. Limestone gorges, waterfalls, Northern grit.",facilities:["🚿 Showers","🚻 Toilets","🍺 Village Pub","🐶 Dog Friendly"],activities:["Three Peaks","Gordale Scar","Janet's Foss","Malham Cove","Aysgarth"],bookingUrl:"https://www.yorkshiredales.org.uk",mapsQ:"Horton in Ribblesdale Campsite",emoji:"🗻",highlight:"Walk behind a waterfall",scene:"mountain",img:"https://upload.wikimedia.org/wikipedia/commons/1/13/2015_Swaledale_from_Kisdon_Hill.jpg"},
-  {id:8,name:"Snowdonia",campsite:"Bryn Gwynant, Nantgwynant",distance:200,petrolPP:20,sitePerNight:14,totalPP:48,rating:4,vibe:"Climb Snowdon. Zip World. Lake swimming. Wales at its wildest.",facilities:["🚿 Showers","🚻 Toilets","🏊 Lake Swim","🏔️ Mtn Views","🐶 Dog Friendly"],activities:["Snowdon Summit","Zip World","Surf Snowdonia","Lake Swim","Conwy Castle"],bookingUrl:"https://www.yha.org.uk",mapsQ:"Bryn Gwynant Nantgwynant",emoji:"🏔️",highlight:"Fastest zip line on Earth nearby",scene:"snow",img:"https://upload.wikimedia.org/wikipedia/commons/5/52/Snowdon_Ranger_path_on_a_cold_February_day._%2816431627106%29.jpg"},
-  {id:9,name:"Brecon Beacons",campsite:"Pencelli Castle Campsite",distance:160,petrolPP:16,sitePerNight:13,totalPP:42,rating:4,vibe:"Best stargazing in the UK. Walk behind waterfalls. Pen y Fan.",facilities:["🚿 Showers","🛒 Shop","🛶 Canal-side","🔥 Campfires","🐶 Dog Friendly"],activities:["Pen y Fan","Four Waterfalls","Walk-Behind Falls","Dark Sky Stars","Canoeing"],bookingUrl:"https://www.pencelli-castle.com",mapsQ:"Pencelli Castle Campsite Brecon",emoji:"🌌",highlight:"UK's best stargazing — Dark Sky Reserve",scene:"stars",img:"https://upload.wikimedia.org/wikipedia/commons/0/03/View_from_Cribyn_to_Pen_Y_Fan_-_geograph.org.uk_-_3447271_%28cropped%29.jpg"},
-  {id:10,name:"Norfolk Coast",campsite:"Holkham Estate, Wells-next-the-Sea",distance:130,petrolPP:13,sitePerNight:16,totalPP:45,rating:4,vibe:"Best beach in England. 3 miles of empty white sand, pine backdrop.",facilities:["🚿 Showers","🛒 Shop","🔥 Campfires","🏖️ Beach Access","🐶 Dog Friendly"],activities:["Holkham Beach","Seal Colony","Coastal Cycling","Wells Harbour","Crabbing"],bookingUrl:"https://www.holkham.co.uk",mapsQ:"Holkham Beach Wells-next-the-Sea",emoji:"🌊",highlight:"Voted best beach in England",scene:"coast",img:"https://upload.wikimedia.org/wikipedia/commons/1/17/Wells-next-the-Sea_Quayside_Aug_2020.jpg"}
+  {id:1,name:"Peak District",campsite:"Fieldhead Campsite, Edale",distance:140,petrolPP:14,sitePerNight:13,totalPP:40,rating:4,vibe:"Classic hiking trip. Pennine Way trailhead. Mam Tor views.",facilities:["🚿 Showers","🛒 Shop & Cafe","🍺 Pub 2 min","🐶 Dog Friendly"],activities:["Kinder Scout","Mam Tor","Caves","Stanage Climbing"],bookingUrl:"https://www.campsites.co.uk",mapsQ:"Fieldhead Campsite Edale",emoji:"🏔️",highlight:"Pennine Way starts here",scene:"mountain",region:"Derbyshire, England",terrain:"Hills & moorland",imgs:["https://upload.wikimedia.org/wikipedia/commons/f/f0/Mam_Tor.jpg","https://upload.wikimedia.org/wikipedia/commons/thumb/8/82/Near_the_High_Peak_-_pano.jpg/960px-Near_the_High_Peak_-_pano.jpg","https://upload.wikimedia.org/wikipedia/commons/thumb/8/8f/Bugsworth_058079.jpg/960px-Bugsworth_058079.jpg"]},
+  {id:2,name:"Lake District — Langdale",campsite:"Great Langdale Campsite (National Trust)",distance:280,petrolPP:28,sitePerNight:14,totalPP:56,rating:5,vibe:"Campsite of the Year 2025. Pub opposite the gate. Epic scenery.",facilities:["🛒 Shop + Croissants","🚿 Showers","🍺 Pub 2 min","🐶 Dog Friendly","🏕️ Pods"],activities:["Langdale Pikes","Scafell Pike","Blea Tarn","Waterfalls","E-Bikes"],bookingUrl:"https://www.nationaltrust.org.uk/holidays",mapsQ:"Great Langdale Campsite",emoji:"⛰️",highlight:"🏆 Campsite of the Year 2025",scene:"mountain",region:"Cumbria, England",terrain:"Mountains & tarns",imgs:["https://upload.wikimedia.org/wikipedia/commons/thumb/e/e1/Great_Langdale_Meets_Windermere.jpg/960px-Great_Langdale_Meets_Windermere.jpg","https://upload.wikimedia.org/wikipedia/commons/thumb/a/af/The_Langdale_Pikes_from_Chapel_Stile.jpg/960px-The_Langdale_Pikes_from_Chapel_Stile.jpg","https://upload.wikimedia.org/wikipedia/commons/thumb/9/95/Copt_Howe_Carvings.jpg/960px-Copt_Howe_Carvings.jpg"]},
+  {id:3,name:"Lake District — Windermere",campsite:"Low Wray Campsite (National Trust)",distance:280,petrolPP:28,sitePerNight:18,totalPP:64,rating:5,vibe:"Right on Lake Windermere. Wild swimming, paddleboards, pizza.",facilities:["🚿 Modern Showers","🛒 Shop","🍕 Wood-Fired Pizza","🛶 Kayaks","🐶 Dog Friendly"],activities:["Windermere Swim","Paddleboarding","Wray Castle","Cycling","Ambleside"],bookingUrl:"https://www.nationaltrust.org.uk/holidays",mapsQ:"Low Wray Campsite Windermere",emoji:"🌊",highlight:"Wild swimming on Windermere",scene:"lake",region:"Cumbria, England",terrain:"Lakeside & woods",imgs:["https://upload.wikimedia.org/wikipedia/commons/thumb/2/20/Windermere_Lake_District_from_hill.JPG/960px-Windermere_Lake_District_from_hill.JPG","https://upload.wikimedia.org/wikipedia/commons/thumb/2/21/Lake_Windermere_on_a_misty_morning.JPG/960px-Lake_Windermere_on_a_misty_morning.JPG","https://upload.wikimedia.org/wikipedia/commons/2/29/Windermere2croped3.jpg"]},
+  {id:4,name:"Pembrokeshire",campsite:"Lleithyr Farm, St Davids",distance:230,petrolPP:23,sitePerNight:17,totalPP:57,rating:5,vibe:"Best beach trip in Wales. Dolphins, coasteering, Whitesands Bay.",facilities:["🚿 Showers","🛒 Farm Shop","🥾 Coastal Path","🐶 Dog Friendly","🔥 Campfires"],activities:["Whitesands Beach","Coasteering","Surfing","Dolphins","St Davids"],bookingUrl:"https://www.campsites.co.uk",mapsQ:"Lleithyr Farm St Davids",emoji:"🏖️",highlight:"186 miles of coastline",scene:"coast",region:"Pembrokeshire, Wales",terrain:"Cliffs & beaches",imgs:["https://upload.wikimedia.org/wikipedia/commons/thumb/e/e5/Green_Bridge_of_Wales_1_-_Pembrokeshire_%282010%29.jpg/960px-Green_Bridge_of_Wales_1_-_Pembrokeshire_%282010%29.jpg","https://upload.wikimedia.org/wikipedia/commons/b/b9/St_Govans%27_chapel_-_geograph.org.uk_-_876068.jpg","https://upload.wikimedia.org/wikipedia/commons/b/b0/Pentre_Ifan_burial_chamber_-_geograph.org.uk_-_384085.jpg"]},
+  {id:5,name:"New Forest",campsite:"Holmsley Campsite",distance:90,petrolPP:9,sitePerNight:20,totalPP:49,rating:4,vibe:"Closest option. Forest ponies, cycling trails, campfires.",facilities:["🚿 Hot Showers","🛒 Shop","🔥 Campfires","🚲 Cycle Trails","🐶 Dog Friendly"],activities:["Forest Cycling","Wild Ponies","Lyndhurst","Bournemouth","Beaulieu"],bookingUrl:"https://www.forestholidays.co.uk",mapsQ:"Holmsley Campsite New Forest",emoji:"🌿",highlight:"Cheapest petrol — only £9pp",scene:"forest",region:"Hampshire, England",terrain:"Woodland & heath",imgs:["https://upload.wikimedia.org/wikipedia/commons/3/31/Beech_trees_in_Mallard_Wood%2C_New_Forest_-_geograph.org.uk_-_779513.jpg","https://upload.wikimedia.org/wikipedia/commons/thumb/a/aa/Beaulieu_Mill_Pond%2C_New_Forest%2C_UK_-_panoramio.jpg/960px-Beaulieu_Mill_Pond%2C_New_Forest%2C_UK_-_panoramio.jpg"]},
+  {id:6,name:"Loch Lomond",campsite:"Cashel Campsite, Rowardennan",distance:380,petrolPP:38,sitePerNight:12,totalPP:62,rating:5,vibe:"Scotland. Ben Lomond. Lochside wild swimming. The big one.",facilities:["🚿 Showers","🚻 Toilets","🏕️ Lochside Pitches","🐶 Dog Friendly"],activities:["Ben Lomond","West Highland Way","Loch Swim","Rob Roy","Stirling"],bookingUrl:"https://www.lochlomond.net",mapsQ:"Cashel Campsite Loch Lomond",emoji:"🏴",highlight:"Wild camping is LEGAL in Scotland",scene:"lake",region:"Stirling, Scotland",terrain:"Loch & Munros",imgs:["https://upload.wikimedia.org/wikipedia/commons/thumb/a/a8/Loch_Lomond_2013_2.JPG/960px-Loch_Lomond_2013_2.JPG","https://upload.wikimedia.org/wikipedia/commons/thumb/6/6a/Ben_Lomand_Loch.jpg/960px-Ben_Lomand_Loch.jpg","https://upload.wikimedia.org/wikipedia/commons/8/8c/Lomond_islands.jpg"]},
+  {id:7,name:"Yorkshire Dales",campsite:"Horton in Ribblesdale",distance:210,petrolPP:21,sitePerNight:13,totalPP:47,rating:4,vibe:"Three Peaks country. Limestone gorges, waterfalls, Northern grit.",facilities:["🚿 Showers","🚻 Toilets","🍺 Village Pub","🐶 Dog Friendly"],activities:["Three Peaks","Gordale Scar","Janet's Foss","Malham Cove","Aysgarth"],bookingUrl:"https://www.yorkshiredales.org.uk",mapsQ:"Horton in Ribblesdale Campsite",emoji:"🗻",highlight:"Walk behind a waterfall",scene:"mountain",region:"North Yorkshire, England",terrain:"Limestone dales",imgs:["https://upload.wikimedia.org/wikipedia/commons/thumb/1/13/2015_Swaledale_from_Kisdon_Hill.jpg/960px-2015_Swaledale_from_Kisdon_Hill.jpg","https://upload.wikimedia.org/wikipedia/commons/thumb/5/5a/Yorkshire_Dales_%28near_Malham%29.jpg/960px-Yorkshire_Dales_%28near_Malham%29.jpg","https://upload.wikimedia.org/wikipedia/commons/thumb/e/ea/Typical_yorkshire_village_B_9079.jpg/960px-Typical_yorkshire_village_B_9079.jpg"]},
+  {id:8,name:"Snowdonia",campsite:"Bryn Gwynant, Nantgwynant",distance:200,petrolPP:20,sitePerNight:14,totalPP:48,rating:4,vibe:"Climb Snowdon. Zip World. Lake swimming. Wales at its wildest.",facilities:["🚿 Showers","🚻 Toilets","🏊 Lake Swim","🏔️ Mtn Views","🐶 Dog Friendly"],activities:["Snowdon Summit","Zip World","Surf Snowdonia","Lake Swim","Conwy Castle"],bookingUrl:"https://www.yha.org.uk",mapsQ:"Bryn Gwynant Nantgwynant",emoji:"🏔️",highlight:"Fastest zip line on Earth nearby",scene:"snow",region:"Eryri, Wales",terrain:"Peaks & lakes",imgs:["https://upload.wikimedia.org/wikipedia/commons/thumb/e/e4/Sunrise_over_Snowdonia._%2815946893737%29.jpg/960px-Sunrise_over_Snowdonia._%2815946893737%29.jpg","https://upload.wikimedia.org/wikipedia/commons/thumb/2/29/Snowdon_from_Capel_Curig_%281133366%29.jpg/960px-Snowdon_from_Capel_Curig_%281133366%29.jpg","https://upload.wikimedia.org/wikipedia/commons/thumb/b/b1/Snowdonia_national_park_%2850620241681%29.jpg/960px-Snowdonia_national_park_%2850620241681%29.jpg"]},
+  {id:9,name:"Brecon Beacons",campsite:"Pencelli Castle Campsite",distance:160,petrolPP:16,sitePerNight:13,totalPP:42,rating:4,vibe:"Best stargazing in the UK. Walk behind waterfalls. Pen y Fan.",facilities:["🚿 Showers","🛒 Shop","🛶 Canal-side","🔥 Campfires","🐶 Dog Friendly"],activities:["Pen y Fan","Four Waterfalls","Walk-Behind Falls","Dark Sky Stars","Canoeing"],bookingUrl:"https://www.pencelli-castle.com",mapsQ:"Pencelli Castle Campsite Brecon",emoji:"🌌",highlight:"UK's best stargazing — Dark Sky Reserve",scene:"stars",region:"Powys, Wales",terrain:"Moorland & falls",imgs:["https://upload.wikimedia.org/wikipedia/commons/thumb/0/03/View_from_Cribyn_to_Pen_Y_Fan_-_geograph.org.uk_-_3447271_%28cropped%29.jpg/960px-View_from_Cribyn_to_Pen_Y_Fan_-_geograph.org.uk_-_3447271_%28cropped%29.jpg","https://upload.wikimedia.org/wikipedia/commons/thumb/5/53/Brecon_Beacons_UKSF.jpg/960px-Brecon_Beacons_UKSF.jpg"]},
+  {id:10,name:"Norfolk Coast",campsite:"Holkham Estate, Wells-next-the-Sea",distance:130,petrolPP:13,sitePerNight:16,totalPP:45,rating:4,vibe:"Best beach in England. 3 miles of empty white sand, pine backdrop.",facilities:["🚿 Showers","🛒 Shop","🔥 Campfires","🏖️ Beach Access","🐶 Dog Friendly"],activities:["Holkham Beach","Seal Colony","Coastal Cycling","Wells Harbour","Crabbing"],bookingUrl:"https://www.holkham.co.uk",mapsQ:"Holkham Beach Wells-next-the-Sea",emoji:"🌊",highlight:"Voted best beach in England",scene:"coast",region:"Norfolk, England",terrain:"Beach & pine",imgs:["https://upload.wikimedia.org/wikipedia/commons/thumb/1/17/Wells-next-the-Sea_Quayside_Aug_2020.jpg/960px-Wells-next-the-Sea_Quayside_Aug_2020.jpg","https://upload.wikimedia.org/wikipedia/commons/thumb/f/fb/Wells-next-the-Sea_Station.jpg/960px-Wells-next-the-Sea_Station.jpg","https://upload.wikimedia.org/wikipedia/commons/thumb/7/70/Wells-next-the-Sea_%28Beached_Boat%29.jpg/960px-Wells-next-the-Sea_%28Beached_Boat%29.jpg"]}
 ];
 
-/* MONTHS — Boss asked for June / July / August availability */
-const MONTHS = [
-  {id:"jun",label:"June",emoji:"🌱",hint:"Long days, quieter sites, cooler nights"},
-  {id:"jul",label:"July",emoji:"☀️",hint:"Peak summer, warmest swimming, busy"},
-  {id:"aug",label:"August",emoji:"🔥",hint:"Bank holiday weekend, festival season"}
-];
-const monthLabel = id => (MONTHS.find(m=>m.id===id)||{}).label || id;
+/* CALENDAR — Boss asked for clickable Jun/Jul/Aug calendars (specific days). 2026. */
+const CAL_MONTHS = [ {y:2026,m:5,label:"June"}, {y:2026,m:6,label:"July"}, {y:2026,m:7,label:"August"} ];
+const DOW = ["Mon","Tue","Wed","Thu","Fri","Sat","Sun"];
+function isoDate(y,m,d){ return `${y}-${String(m+1).padStart(2,"0")}-${String(d).padStart(2,"0")}`; }
+function prettyDate(iso){ const [y,m,d]=iso.split("-").map(Number); const dt=new Date(y,m-1,d);
+  return dt.toLocaleDateString("en-GB",{weekday:"short",day:"numeric",month:"short"}); }
 
 const destById = id => DESTINATIONS.find(d => d.id === id);
 const mapEmbed = q => `https://maps.google.com/maps?q=${encodeURIComponent(q)}&z=10&output=embed`;
 const mapsLink = q => `https://maps.google.com/?q=${encodeURIComponent(q)}`;
+const driveTime = mi => { const h=mi/50, H=Math.floor(h), M=Math.round((h-H)*60); return M? `${H}h ${M}m` : `${H}h`; };
 
 /* ---------- GENERATED SVG SCENERY (self-contained fallback, no external img) ---------- */
 function rng(seed){let t=seed*0x6D2B79F5;return function(){t=Math.imul(t^(t>>>15),t|1);t^=t+Math.imul(t^(t>>>7),t|61);return((t^(t>>>14))>>>0)/4294967296;};}
@@ -521,8 +533,19 @@ function inviteShare(){
 }
 function copy(txt){ try{ navigator.clipboard.writeText(txt); toast("Link copied"); }catch(e){} }
 
-/* photo layer helper — fades photo in over the SVG scene, hides on error */
-function photoTag(d,cls){ return `<img class="photo ${cls||''}" src="${d.img}" alt="${d.name}" loading="lazy" decoding="async" onload="this.classList.add('in')" onerror="this.remove()"/>`; }
+/* photo helpers — photo fades in over the SVG scene base; hides on error.
+   Cards show a hero + a tappable thumbnail strip (kept separate from Swiper's
+   horizontal drag so the gestures don't fight). */
+function photoTag(url,name,cls){ return `<img class="photo ${cls||''}" src="${url}" alt="${name||''}" loading="lazy" decoding="async" onload="this.classList.add('in')" onerror="this.remove()"/>`; }
+function thumbStrip(d){
+  if(!d.imgs || d.imgs.length<2) return "";
+  return `<div class="thumbs">${d.imgs.map((u,i)=>`<img class="thumb${i===0?' on':''}" src="${u}" loading="lazy" decoding="async" onerror="this.remove()" onclick="selPhoto(this,'${u}')"/>`).join("")}</div>`;
+}
+function selPhoto(el,u){
+  const card=el.closest(".dcard"); if(!card) return;
+  const hero=card.querySelector(".heroimg"); if(hero){ hero.classList.remove("in"); hero.src=u; }
+  el.parentNode.querySelectorAll(".thumb").forEach(t=>t.classList.remove("on")); el.classList.add("on");
+}
 
 /* ---------- SCREEN 1 ---------- */
 function initS1(){
@@ -539,16 +562,34 @@ function initS1(){
   bindHoldToUnlock(document.getElementById("logo1"));
 }
 
-/* ---------- SCREEN 2 — AVAILABILITY (months) ---------- */
+/* ---------- SCREEN 2 — AVAILABILITY (clickable Jun/Jul/Aug calendars) ---------- */
+function availCount(){ document.getElementById("availCount").textContent = me.availability.length ? `${me.availability.length} day${me.availability.length>1?"s":""} selected` : "Tap the days you're free"; }
 function buildAvailGrid(){
   const wrap=document.getElementById("availGrid"); wrap.innerHTML="";
-  MONTHS.forEach(m=>{
-    const b=document.createElement("div");
-    b.className="month"+(me.availability.includes(m.id)?" on":"");
-    b.innerHTML=`<span class="memoji">${m.emoji}</span><div><div class="mname">${m.label}</div><div class="mhint">${m.hint}</div></div><span class="mtick">✓</span>`;
-    b.onclick=()=>{ const i=me.availability.indexOf(m.id); if(i>=0)me.availability.splice(i,1); else me.availability.push(m.id); b.classList.toggle("on"); };
-    wrap.appendChild(b);
+  CAL_MONTHS.forEach(M=>{
+    const cal=document.createElement("div"); cal.className="cal";
+    const first=new Date(M.y,M.m,1).getDay();           // 0=Sun..6=Sat
+    const pad=(first+6)%7;                                // Monday-first offset
+    const days=new Date(M.y,M.m+1,0).getDate();
+    let cells="";
+    for(let i=0;i<pad;i++) cells+=`<div class="day blank"></div>`;
+    for(let d=1;d<=days;d++){
+      const iso=isoDate(M.y,M.m,d);
+      const wd=new Date(M.y,M.m,d).getDay();             // weekend tint
+      const we=(wd===0||wd===6)?" we":"";
+      const on=me.availability.includes(iso)?" on":"";
+      cells+=`<div class="day${we}${on}" data-iso="${iso}">${d}</div>`;
+    }
+    cal.innerHTML=`<h3>${M.label} 2026</h3>
+      <div class="cal-grid">${DOW.map(x=>`<div class="cal-dow">${x[0]}</div>`).join("")}${cells}</div>`;
+    cal.querySelectorAll(".day:not(.blank)").forEach(cell=>{
+      cell.onclick=()=>{ const iso=cell.dataset.iso; const i=me.availability.indexOf(iso);
+        if(i>=0)me.availability.splice(i,1); else me.availability.push(iso);
+        cell.classList.toggle("on"); availCount(); };
+    });
+    wrap.appendChild(cal);
   });
+  availCount();
   document.getElementById("availNext").onclick=async()=>{
     const btn=document.getElementById("availNext"); btn.textContent="Saving…";
     await sync(); btn.textContent="NEXT · EXPLORE CAMPS →";
@@ -567,23 +608,31 @@ function buildCarousel(){
       <div class="dcard">
         <div class="hero">
           <div class="scene">${scene(d)}</div>
-          ${photoTag(d)}
+          <img class="heroimg photo" src="${d.imgs[0]}" alt="${d.name}" loading="lazy" decoding="async" onload="this.classList.add('in')" onerror="this.style.display='none'"/>
           <div class="grad"></div>
-          <span class="htag">${d.emoji} ${d.distance} mi · ${d.campsite.split(",")[0]}</span>
+          <span class="htag">${d.emoji} ${d.region}</span>
           <span class="rtag">${"★".repeat(d.rating)}</span>
         </div>
+        ${thumbStrip(d)}
         <div class="body">
           <p class="dname">${d.name}</p>
           <p class="cname">▸ ${d.campsite}</p>
           <p class="vibe">${d.vibe}</p>
           <div class="highlight">✦ ${d.highlight}</div>
+          <div class="infogrid">
+            <div class="info"><span class="il">📍 Region</span><span class="iv">${d.region}</span></div>
+            <div class="info"><span class="il">🚗 Drive</span><span class="iv">${d.distance} mi · ~${driveTime(d.distance)}</span></div>
+            <div class="info"><span class="il">⛰️ Terrain</span><span class="iv">${d.terrain}</span></div>
+            <div class="info"><span class="il">⭐ Rating</span><span class="iv">${d.rating}/5</span></div>
+          </div>
           <div class="costrow">
             <div class="cost"><div class="v">£${d.totalPP}</div><div class="l">Total pp</div></div>
-            <div class="cost"><div class="v">£${d.petrolPP}</div><div class="l">⛽ Petrol</div></div>
-            <div class="cost"><div class="v">£${d.sitePerNight}</div><div class="l">🏕️ /night</div></div>
+            <div class="cost"><div class="v">£${d.petrolPP}</div><div class="l">⛽ Petrol pp</div></div>
+            <div class="cost"><div class="v">£${d.sitePerNight}</div><div class="l">🏕️ Site/night</div></div>
           </div>
-          <div class="specrow"><span>DRIVE <b>${d.distance} mi</b></span><span>RATING <b>${d.rating}/5</b></span><span>FROM <b>£${d.totalPP}pp</b></span></div>
+          <p class="seclab">🏕️ On site</p>
           <div class="chips">${d.facilities.map(f=>`<span class="chip">${f}</span>`).join("")}</div>
+          <p class="seclab">🥾 Things to do</p>
           <div class="chips">${d.activities.map(a=>`<span class="chip act">${a}</span>`).join("")}</div>
           <div class="mapwrap" data-map="${mapEmbed(d.mapsQ)}" style="display:none;"></div>
           <div class="linkrow">
@@ -607,7 +656,7 @@ function buildCarousel(){
 }
 
 /* ---------- SCREEN 4 — ROUND 1 ---------- */
-function voteCardHTML(d){ return `<div class="vthumb"><div class="scene">${scene(d)}</div>${photoTag(d)}</div><div class="vn">${d.emoji} ${d.name}</div><div class="check">✓</div>`; }
+function voteCardHTML(d){ return `<div class="vthumb"><div class="scene">${scene(d)}</div>${photoTag(d.imgs[0],d.name)}</div><div class="vn">${d.emoji} ${d.name}</div><div class="check">✓</div>`; }
 function buildR1(){
   const grid=document.getElementById("r1grid"); grid.innerHTML="";
   DESTINATIONS.forEach(d=>{
@@ -678,10 +727,10 @@ function buildR2(){
 function tallyRound2(){ const counts={}; let voters=0; Object.values(shared.members).forEach(m=>{ if(m.round2!=null){ voters++; counts[m.round2]=(counts[m.round2]||0)+1; } }); return {counts,voters}; }
 function availabilityOverlap(){
   const set=Object.values(shared.members).filter(m=>m.availability&&m.availability.length);
-  const n=set.length||1; const tally={}; MONTHS.forEach(m=>tally[m.id]=0);
-  set.forEach(m=>m.availability.forEach(id=>{ if(tally[id]!=null)tally[id]++; }));
+  const n=set.length||1; const tally={};
+  set.forEach(m=>m.availability.forEach(iso=>{ tally[iso]=(tally[iso]||0)+1; }));
   const best=Math.max(0,...Object.values(tally));
-  const dates=MONTHS.filter(m=>tally[m.id]===best&&best>0).map(m=>m.label);
+  const dates=Object.keys(tally).filter(iso=>tally[iso]===best&&best>0).sort().slice(0,4).map(prettyDate);
   return {dates,best,n};
 }
 async function enterWinner(){
@@ -692,7 +741,7 @@ async function enterWinner(){
   const d=destById(winnerId);
   document.getElementById("winScene").innerHTML=scene(d);
   const wp=document.getElementById("winPhoto"); wp.classList.remove("in");
-  wp.onload=()=>wp.classList.add("in"); wp.onerror=()=>wp.remove(); wp.src=d.img;
+  wp.onload=()=>wp.classList.add("in"); wp.onerror=()=>{wp.style.display='none';}; wp.src=d.imgs[0];
   document.getElementById("winName").textContent=`${d.emoji} ${d.name}`;
   document.getElementById("winMeta").innerHTML=`
     <div class="avail-box">
@@ -707,11 +756,11 @@ async function enterWinner(){
     </div>`;
   const {dates,best,n}=availabilityOverlap();
   const datesEl=document.getElementById("winDates"), labEl=document.getElementById("winDatesLab");
-  if(dates.length){ datesEl.textContent=dates.join(" · "); labEl.textContent = best>=n ? "Best month — everyone free" : `Best month — ${best}/${n} free`; }
+  if(dates.length){ datesEl.textContent=dates.join("  ·  "); labEl.textContent = best>=n ? "Best dates — everyone free" : `Best dates — ${best}/${n} free`; }
   else { datesEl.textContent="Set availability to see overlap"; }
   document.getElementById("shareBtn").onclick=()=>{
     const dateStr=dates.length?dates[0]:"TBC";
-    const msg=`🏕️ KAMPING WINNER: ${d.name}! Most of us are free in ${dateStr}. Who's booking? 🔥\n${shareURL()}`;
+    const msg=`🏕️ KAMPING WINNER: ${d.name}! Best date for us: ${dateStr}. Who's booking? 🔥\n${shareURL()}`;
     if(navigator.share){ navigator.share({title:"KAMPING winner",text:msg}).catch(()=>{}); }
     else { copy(shareURL()); window.open(`https://wa.me/?text=${encodeURIComponent(msg)}`,"_blank"); }
   };
